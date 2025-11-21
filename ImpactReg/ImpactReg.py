@@ -22,6 +22,7 @@ import re
 import shutil
 
 import numpy as np
+from konfai.evaluator import Statistics
 
 class ElastixProcess(Process):
 
@@ -161,6 +162,7 @@ class ElastixImpactWidget(AppTemplateWidget):
 
     def __init__(self, name: str, repo_id: str):
         super().__init__(name, slicer.util.loadUI(resourcePath("UI/ElastixImpactReg.ui")))
+        self.repo_id = repo_id
 
         self.evaluationPanel = KonfAIMetricsPanel()
         self.ui.withRefMetricsPlaceholder.layout().addWidget(self.evaluationPanel)
@@ -176,8 +178,14 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.ui.movingMaskSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_GUI)
         
         self.ui.inputTransformSequenceSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_GUI)
-        self.ui.qaInputFixedSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_GUI)
-        self.ui.qaInputMovingSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_GUI)
+        
+        self.ui.fixedImageEvaluationSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_GUI)
+        self.ui.movingImageEvaluationSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_GUI)
+        self.ui.fixedSegEvaluationSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_GUI)
+        self.ui.movingSegEvaluationSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_GUI)
+        self.ui.fixedFidEvaluationSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_GUI)
+        self.ui.movingFidEvaluationSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_GUI)
+        
         self.ui.inputTransformSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_GUI)
         
         self.ui.toggleDescriptionButton.clicked.connect(self.on_toggle_description)
@@ -206,13 +214,70 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.ui.parameterMapPresetComboBox.currentIndexChanged.connect(self.on_preset_selected)
 
     def on_run_evaluation_button(self):
+        self.evaluationPanel.clearImagesList()
+        self.uncertaintyPanel.clearImagesList()
         self.on_run_button(self.evaluation if self.ui.qaTabWidget.currentWidget().name == "withRefTab" else self.uncertainty)
 
     def evaluation(self):
-        print("Eval")
+
+        args = [
+            "eval",
+            f"{self.repo_id}:ImpactReg",
+            "-i", 
+            "Volume.mha",
+            "--gt",
+            "Reference.mha",
+            "-o",
+            "Evaluation",
+        ]
+        if self._parameterNode.GetParameter("Device") != "None":
+            args += ["--gpu", self._parameterNode.GetParameter("Device")]
+        else:
+            args += ["--cpu", "1"]
+        
+        def on_end_function() -> None:
+            if self.process.exitStatus() != QProcess.NormalExit:
+                self.set_running(False)
+                return
+            try:
+                statistics = Statistics((self._work_dir / "Evaluation").rglob("*.json").__next__())
+                self.evaluationPanel.setMetrics(statistics.read()) 
+                self.evaluationPanel.refreshImagesList(Path((self._work_dir / "Evaluation").rglob("*.mha").__next__().parent))
+                self._update_logs("Processing finished.")
+                self.set_running(False)
+            finally:
+                self.set_running(False)
+        self.process.run("konfai-apps", self._work_dir, args, on_end_function)
     
     def uncertainty(self):
-        print("uncertainty")
+        args = [
+            "uncertainty",
+            f"{self.repo_id}:ImpactReg",
+            "-i", 
+            "Volume.mha",
+            "-o",
+            "Uncertainty",
+        ]
+
+        if self._parameterNode.GetParameter("Device") != "None":
+            args += ["--gpu", self._parameterNode.GetParameter("Device")]
+        else:
+            args += ["--cpu", "1"]
+        
+        def on_end_function() -> None:
+            if self.process.exitStatus() != QProcess.NormalExit:
+                self.set_running(False)
+                return
+            try:
+                statistics = Statistics((self._work_dir / "Uncertainty").rglob("*.json").__next__())
+                self.uncertaintyPanel.setMetrics(statistics.read()) 
+                self.uncertaintyPanel.refreshImagesList(Path((self._work_dir / "Uncertainty").rglob("*.mha").__next__().parent))
+                self._update_logs("Processing finished.")
+            finally:
+                self.set_running(False)
+
+        self.process.run("konfai-apps", self._work_dir, args, on_end_function)
+
 
     def setup_preset_chips(self, presets: list[str]):
         combo = self.ui.parameterMapPresetComboBox
@@ -290,8 +355,6 @@ class ElastixImpactWidget(AppTemplateWidget):
         Open configuration file when user clicks "Open config" button.
         """
         preset_dir = self.ui.parameterMapPresetComboBox.currentData.get_preset_dir()
-        #self.ui.modelComboBox.currentData.download_evaluation()
-        #self.ui.modelComboBox.currentData.download_uncertainty()
         QDesktopServices.openUrl(QUrl.fromLocalFile(preset_dir.parent))
 
     def on_preset_selected(self):
@@ -318,7 +381,8 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.process = ElastixProcess(update_logs, update_progress)
 
     def initialize_parameter_node(self):
-        pass
+        self._parameterNode.SetParameter(f"{self.name}/Preset", str(0))
+
 
     def initialize_GUI_from_parameter_node(self):
         self.ui.fixedVolumeSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/FixedVolume"))
@@ -328,13 +392,21 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.ui.movingMaskSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/FixedVolume"))
         
         self.ui.inputTransformSequenceSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/TransformSequence"))
-        self.ui.qaInputFixedSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/MovingEvaluation"))
-        self.ui.qaInputMovingSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/TransformEvaluation"))
-        self.ui.inputTransformSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/TransformSequence"))
+
+        self.ui.fixedImageEvaluationSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/FixedImageEvaluation"))
+        self.ui.movingImageEvaluationSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/MovingImageEvaluation"))
+        
+        self.ui.fixedSegEvaluationSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/FixedSegEvaluation"))
+        self.ui.movingSegEvaluationSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/MovingSegEvaluation"))
+        
+        self.ui.fixedFidEvaluationSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/FixedFidEvaluation"))
+        self.ui.movingFidEvaluationSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/MovingFidEvaluation"))
+        
+
+        self.ui.inputTransformSelector.setCurrentNode(self._parameterNode.GetNodeReference(f"{self.name}/TransformEvaluation"))
         
         self.setup_preset_chips(self._parameterNode.GetParameter(f"{self.name}/Presets").split(","))
         
-        print("set ", self._parameterNode.GetParameter(f"{self.name}/Preset"))
         self.ui.parameterMapPresetComboBox.setCurrentIndex(int(self._parameterNode.GetParameter(f"{self.name}/Preset")))
 
     def enter(self):
@@ -359,20 +431,29 @@ class ElastixImpactWidget(AppTemplateWidget):
             self.ui.runRegistrationButton.text = "Stop"
             self.ui.runEvaluationButton.text = "Stop"
         
-        fixedEvaluation = self._parameterNode.GetNodeReference(f"{self.name}/FixedEvaluation")
-        movingEvaluation = self._parameterNode.GetNodeReference(f"{self.name}/MovingEvaluation")
+        fixedImageEvaluation = self._parameterNode.GetNodeReference(f"{self.name}/FixedImageEvaluation")
+        movingImageEvaluation = self._parameterNode.GetNodeReference(f"{self.name}/MovingImageEvaluation")
+
+        fixedSegEvaluation = self._parameterNode.GetNodeReference(f"{self.name}/FixedSegEvaluation")
+        movingSegEvaluation = self._parameterNode.GetNodeReference(f"{self.name}/MovingSegEvaluation")
+
+        fixedFidEvaluation = self._parameterNode.GetNodeReference(f"{self.name}/FixedFidEvaluation")
+        movingFidEvaluation = self._parameterNode.GetNodeReference(f"{self.name}/MovingFidEvaluation")
+
         transformEvaluation = self._parameterNode.GetNodeReference(f"{self.name}/TransformEvaluation")
         transformSequence = self._parameterNode.GetNodeReference(f"{self.name}/TransformSequence")
 
         if self.ui.qaTabWidget.currentWidget().name == "withRefTab":
-            if fixedEvaluation and fixedEvaluation.GetImageData() and movingEvaluation and movingEvaluation.GetImageData() and transformEvaluation and transformEvaluation.GetImageData():
+            if (fixedImageEvaluation and fixedImageEvaluation.GetImageData() and movingImageEvaluation and movingImageEvaluation.GetImageData()) or \
+                (fixedSegEvaluation and fixedSegEvaluation.GetImageData() and movingSegEvaluation and movingSegEvaluation.GetImageData()) or \
+                (fixedFidEvaluation and fixedFidEvaluation.GetImageData() and movingFidEvaluation and movingFidEvaluation.GetImageData()) and transformEvaluation:
                 self.ui.runEvaluationButton.toolTip = _("Start evaluation")
                 self.ui.runEvaluationButton.enabled = True
             else:
                 self.ui.runEvaluationButton.toolTip = _("Select fixed and moving and transform")
                 self.ui.runEvaluationButton.enabled = False
         else:
-            if transformSequence and transformSequence.GetImageData() and inferenceStackVolume.GetNumberOfDataNodes() > 1:
+            if transformSequence and transformSequence.GetNumberOfDataNodes() > 1:
                 self.ui.runEvaluationButton.toolTip = _("Start uncertainty estimation")
                 self.ui.runEvaluationButton.enabled = True
             else:
@@ -388,8 +469,16 @@ class ElastixImpactWidget(AppTemplateWidget):
 
         self._parameterNode.SetNodeReferenceID(f"{self.name}/OutputTransform", self.ui.outputTransformSelector.currentNodeID)
 
-        self._parameterNode.SetNodeReferenceID(f"{self.name}/FixedEvaluation", self.ui.qaInputFixedSelector.currentNodeID)
-        self._parameterNode.SetNodeReferenceID(f"{self.name}/MovingEvaluation", self.ui.qaInputMovingSelector.currentNodeID)
+        self._parameterNode.SetNodeReferenceID(f"{self.name}/FixedImageEvaluation", self.ui.fixedImageEvaluationSelector.currentNodeID)
+        self._parameterNode.SetNodeReferenceID(f"{self.name}/MovingImageEvaluation", self.ui.movingImageEvaluationSelector.currentNodeID)
+        
+        self._parameterNode.SetNodeReferenceID(f"{self.name}/FixedSegEvaluation", self.ui.fixedSegEvaluationSelector.currentNodeID)
+        self._parameterNode.SetNodeReferenceID(f"{self.name}/MovingSegEvaluation", self.ui.movingSegEvaluationSelector.currentNodeID)
+        
+        self._parameterNode.SetNodeReferenceID(f"{self.name}/FixedFidEvaluation", self.ui.fixedFidEvaluationSelector.currentNodeID)
+        self._parameterNode.SetNodeReferenceID(f"{self.name}/MovingFidEvaluation", self.ui.movingFidEvaluationSelector.currentNodeID)
+        
+
         self._parameterNode.SetNodeReferenceID(f"{self.name}/TransformEvaluation", self.ui.inputTransformSelector.currentNodeID)
 
         self._parameterNode.SetNodeReferenceID(f"{self.name}/TransformSequence", self.ui.inputTransformSequenceSelector.currentNodeID)
@@ -608,7 +697,7 @@ class ImpactRegWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         ScriptedLoadableModuleWidget.setup(self)
 
         self.konfai_core = KonfAICoreWidget("Impact Reg")
-        self.konfai_core.register_apps([ElastixImpactWidget("Elastix", "VBoussot/ImpactReg"), AdamImpactWidget("Adam")])
+        self.konfai_core.register_apps([ElastixImpactWidget("Elastix", "VBoussot/ImpactReg")])
 
         self.layout.addWidget(self.konfai_core)
         

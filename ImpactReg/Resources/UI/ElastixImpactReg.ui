@@ -433,47 +433,166 @@
             <layout class="QFormLayout" name="formLayout_qa_ref">
                 <property name="horizontalSpacing"><number>8</number></property>
                 <property name="verticalSpacing"><number>4</number></property>
-                <item row="0" column="0">
-                  <widget class="QLabel" name="qaReferenceLabel">
-                    <property name="text">
-                      <string>Fixed</string>
-                    </property>
-                  </widget>
-                </item>
-                <item row="0" column="1">
-                  <widget class="qMRMLNodeComboBox" name="qaInputFixedSelector">
-                    <property name="nodeTypes">
-                      <stringlist>
-                        <string>vtkMRMLScalarVolumeNode</string>
-                        <string>vtkMRMLSegmentationNode</string>
-                        <string>vtkMRMLMarkupsFiducialNode</string>
-                      </stringlist>
-                    </property>
-                    <property name="noneEnabled"><bool>true</bool></property>
-                    <property name="noneDisplay"><string>None</string></property>
-                  </widget>
-                </item>
 
-                 <!-- Evaluated input -->
-                <item row="1" column="0">
-                  <widget class="QLabel" name="qaEvaluatedLabel">
-                    <property name="text">
-                      <string>Moving</string>
-                    </property>
+                  <item row="0" column="0" colspan="2">
+                <widget class="QTabWidget" name="inputTabs">
+                  <!-- ======================= TAB 1 : IMAGES ======================= -->
+                  <widget class="QWidget" name="imagesTab">
+                    <attribute name="title">
+                      <string>Images</string>
+                    </attribute>
+                    <layout class="QGridLayout" name="imagesGrid">
+
+                      <!-- Fixed Image -->
+                      <item row="0" column="0">
+                        <widget class="QLabel" name="fixedImageEvaluationLabel">
+                          <property name="text">
+                            <string>Fixed Image</string>
+                          </property>
+                        </widget>
+                      </item>
+
+                      <item row="0" column="1">
+                        <widget class="qMRMLNodeComboBox" name="fixedImageEvaluationSelector">
+                          <property name="nodeTypes">
+                            <stringlist>
+                              <string>vtkMRMLScalarVolumeNode</string>
+                            </stringlist>
+                          </property>
+                          <property name="noneEnabled"><bool>true</bool></property>
+                          <property name="noneDisplay"><string>None</string></property>
+                        </widget>
+                      </item>
+
+                      <!-- Moving Image -->
+                      <item row="1" column="0">
+                        <widget class="QLabel" name="movingImageEvaluationLabel">
+                          <property name="text">
+                            <string>Moving Image</string>
+                          </property>
+                        </widget>
+                      </item>
+
+                      <item row="1" column="1">
+                        <widget class="qMRMLNodeComboBox" name="movingImageEvaluationSelector">
+                          <property name="nodeTypes">
+                            <stringlist>
+                              <string>vtkMRMLScalarVolumeNode</string>
+                            </stringlist>
+                          </property>
+                          <property name="noneEnabled"><bool>true</bool></property>
+                          <property name="noneDisplay"><string>None</string></property>
+                        </widget>
+                      </item>
+
+                    </layout>
                   </widget>
-                </item>
-                <item row="1" column="1">
-                  <widget class="qMRMLNodeComboBox" name="qaInputMovingSelector">
-                    <property name="nodeTypes">
-                      <stringlist>
-                        <string>vtkMRMLScalarVolumeNode</string>
-                        <string>vtkMRMLSegmentationNode</string>
-                        <string>vtkMRMLMarkupsFiducialNode</string>
-                      </stringlist>
-                    </property>
-                    <property name="noneEnabled"><bool>true</bool></property>
-                    <property name="noneDisplay"><string>None</string></property>
+
+                  <!-- ======================= TAB 2 : SEGMENTATIONS ======================= -->
+                  <widget class="QWidget" name="segmentationsTab">
+                    <attribute name="title">
+                      <string>Segmentations</string>
+                    </attribute>
+                    <layout class="QGridLayout" name="segmentationsGrid">
+
+                      <!-- Fixed Segmentation -->
+                      <item row="0" column="0">
+                        <widget class="QLabel" name="fixedSegEvaluationLabel">
+                          <property name="text">
+                            <string>Fixed Segmentation</string>
+                          </property>
+                        </widget>
+                      </item>
+
+                      <item row="0" column="1">
+                        <widget class="qMRMLNodeComboBox" name="fixedSegEvaluationSelector">
+                          <property name="nodeTypes">
+                            <stringlist>
+                              <string>vtkMRMLSegmentationNode</string>
+                            </stringlist>
+                          </property>
+                          <property name="noneEnabled"><bool>true</bool></property>
+                          <property name="noneDisplay"><string>None</string></property>
+                        </widget>
+                      </item>
+
+                      <!-- Moving Segmentation -->
+                      <item row="1" column="0">
+                        <widget class="QLabel" name="movingSegEvaluationLabel">
+                          <property name="text">
+                            <string>Moving Segmentation</string>
+                          </property>
+                        </widget>
+                      </item>
+
+                      <item row="1" column="1">
+                        <widget class="qMRMLNodeComboBox" name="movingSegEvaluationSelector">
+                          <property name="nodeTypes">
+                            <stringlist>
+                              <string>vtkMRMLSegmentationNode</string>
+                            </stringlist>
+                          </property>
+                          <property name="noneEnabled"><bool>true</bool></property>
+                          <property name="noneDisplay"><string>None</string></property>
+                        </widget>
+                      </item>
+
+                    </layout>
                   </widget>
+
+                  <!-- ======================= TAB 3 : FIDUCIALS ======================= -->
+                  <widget class="QWidget" name="fiducialsTab">
+                    <attribute name="title">
+                      <string>Fiducials</string>
+                    </attribute>
+                    <layout class="QGridLayout" name="fiducialsGrid">
+
+                      <!-- Fixed Fiducials -->
+                      <item row="0" column="0">
+                        <widget class="QLabel" name="fixedFidEvaluationLabel">
+                          <property name="text">
+                            <string>Fixed Fiducials</string>
+                          </property>
+                        </widget>
+                      </item>
+
+                      <item row="0" column="1">
+                        <widget class="qMRMLNodeComboBox" name="fixedFidEvaluationSelector">
+                          <property name="nodeTypes">
+                            <stringlist>
+                              <string>vtkMRMLMarkupsFiducialNode</string>
+                            </stringlist>
+                          </property>
+                          <property name="noneEnabled"><bool>true</bool></property>
+                          <property name="noneDisplay"><string>None</string></property>
+                        </widget>
+                      </item>
+
+                      <!-- Moving Fiducials -->
+                      <item row="1" column="0">
+                        <widget class="QLabel" name="movingFidEvaluationLabel">
+                          <property name="text">
+                            <string>Moving Fiducials</string>
+                          </property>
+                        </widget>
+                      </item>
+
+                      <item row="1" column="1">
+                        <widget class="qMRMLNodeComboBox" name="movingFidEvaluationSelector">
+                          <property name="nodeTypes">
+                            <stringlist>
+                              <string>vtkMRMLMarkupsFiducialNode</string>
+                            </stringlist>
+                          </property>
+                          <property name="noneEnabled"><bool>true</bool></property>
+                          <property name="noneDisplay"><string>None</string></property>
+                        </widget>
+                      </item>
+
+                    </layout>
+                  </widget>
+
+                </widget>
                 </item>
                  <item row="2" column="0">
                   <widget class="QLabel" name="qaTransformLabel">
@@ -584,11 +703,10 @@
         <slot>setMRMLScene(vtkMRMLScene*)</slot>
     </connection>
 
-
     <connection>
         <sender>ElastixImpactRegWidget</sender>
         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>qaInputFixedSelector</receiver>
+        <receiver>fixedImageEvaluationSelector</receiver>
         <slot>setMRMLScene(vtkMRMLScene*)</slot>
     </connection>
 
@@ -596,7 +714,37 @@
     <connection>
         <sender>ElastixImpactRegWidget</sender>
         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>qaInputMovingSelector</receiver>
+        <receiver>movingImageEvaluationSelector</receiver>
+        <slot>setMRMLScene(vtkMRMLScene*)</slot>
+    </connection>
+
+    <connection>
+        <sender>ElastixImpactRegWidget</sender>
+        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+        <receiver>fixedSegEvaluationSelector</receiver>
+        <slot>setMRMLScene(vtkMRMLScene*)</slot>
+    </connection>
+
+
+    <connection>
+        <sender>ElastixImpactRegWidget</sender>
+        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+        <receiver>movingSegEvaluationSelector</receiver>
+        <slot>setMRMLScene(vtkMRMLScene*)</slot>
+    </connection>
+
+    <connection>
+        <sender>ElastixImpactRegWidget</sender>
+        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+        <receiver>fixedFidEvaluationSelector</receiver>
+        <slot>setMRMLScene(vtkMRMLScene*)</slot>
+    </connection>
+
+
+    <connection>
+        <sender>ElastixImpactRegWidget</sender>
+        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+        <receiver>movingFidEvaluationSelector</receiver>
         <slot>setMRMLScene(vtkMRMLScene*)</slot>
     </connection>
 
