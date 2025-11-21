@@ -25,8 +25,9 @@
    **Edit → Application Settings → Modules → Additional Module Paths**  
    and add the folder:
    ```
-   SlicerImpactReg/lib/Slicer-5.11/qt-scripted-modules
+   build/lib/Slicer-5.11/qt-scripted-modules
    ```
 
 5. Restart Slicer and open the **IMPACT-Reg** module.
+
 
