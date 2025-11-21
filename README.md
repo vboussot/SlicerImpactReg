@@ -9,6 +9,7 @@
 
 3. Build the module:
    ```bash
+   cd SlicerImpactReg
    mkdir build
    cd build
 
@@ -28,3 +29,4 @@
    ```
 
 5. Restart Slicer and open the **IMPACT-Reg** module.
+
