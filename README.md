@@ -1,33 +1,100 @@
+# 🔄 Slicer IMPACT-Reg
+
+**Slicer IMPACT-Reg** is an open-source 3D Slicer extension dedicated to **multimodal medical image registration**.  
+It integrates the **IMPACT similarity metric [1]** within the **Elastix** registration engine, bringing state-of-the-art deep semantic alignment directly into Slicer.
+
+Powered by **KonfAI [2]**, the module provides:
+
+- Fully automated registration pipelines  
+- GPU-accelerated feature extraction  
+- Built-in quality assessment and visualization  
+- Ensemble-based uncertainty quantification  
+
+All within a clinically-friendly environment.
+
+---
+
+## 🖼️ User Interface
+
+| IMPACT-Reg registration workflow | Registration evaluation panel |
+|---------------------------------|-------------------------------|
+| | |
+| *Figure 1 – Multimodal registration interface.* | *Figure 2 – Evaluation with reference labels.* |
+
+<p align="center">
+</p>
+
+---
+
+## ⚙️ Key Features
+
+### 🧠 Deep semantic registration
+- IMPACT: feature-space similarity from pretrained segmentation networks  
+- Multi-preset execution enabling sequential refinement  
+- GPU or CPU execution  
+- Optional mask-constrained registration  
+
+### 📊 Built-in evaluation and QA
+- Landmark, segmentation, and intensity-based metrics  
+- Automatic warped volume generation  
+- 2D/3D synchronized visualization inside Slicer  
+
+### 🔁 Ensemble-based robustness
+- Multiple registration presets executed sequentially  
+- Composite deformation field estimation  
+- Average transform computation  
+
+### 📉 Uncertainty quantification
+- Analysis of the statistical variability of transforms  
+- Automatic visualization of uncertainty volumes  
+- JSON metrics export for downstream analysis  
+
+---
+
 ## 🚀 Installation
 
-1. Install **3D Slicer ≥ 5.6**
+Requires **3D Slicer ≥ 5.6**
 
-2. Clone this repository:
-   ```bash
-   git clone https://github.com/vboussot/SlicerImpactReg.git
-   ```
+### 1️⃣ Clone the KonfAI module
+```bash
+git clone https://github.com/vboussot/SlicerKonfai.git
+```
 
-3. Build the module:
-   ```bash
-   cd SlicerImpactReg
-   mkdir build
-   cd build
+### 2️⃣ Clone this repository
+```bash
+git clone https://github.com/vboussot/SlicerImpactReg.git
+```
 
-   cmake \
-     -DCMAKE_BUILD_TYPE:STRING=Debug \
-     -DSlicer_DIR:PATH=/path/to/Slicer-SuperBuild-Debug/Slicer-build \
-     ..
+### 3️⃣ In Slicer  
+Go to:
+> **Edit → Application Settings → Modules → Additional Module Paths**
 
-   cmake --build . --config Release -j$(nproc)
-   ```
+Add:
+- `SlicerKonfai/KonfAI`  
+- `SlicerImpactReg/ImpactReg`
 
-4. In Slicer, open:  
-   **Edit → Application Settings → Modules → Additional Module Paths**  
-   and add the folder:
-   ```
-   build/lib/Slicer-5.11/qt-scripted-modules
-   ```
+### 4️⃣ Restart Slicer → open **IMPACT-Reg** 🎯
 
-5. Restart Slicer and open the **IMPACT-Reg** module.
+---
 
+## 🧩 Presets & Models
 
+Parameter maps and pretrained models are automatically downloaded from:  
+📦 **VBoussot/ImpactReg** on Hugging Face Hub  
+
+Each preset includes:
+- Parameter maps for Elastix  
+- Feature extractor models for IMPACT  
+- A volume-dependent preprocessing function  
+
+---
+
+## 📚 References
+
+1. **Boussot, V. et al.**  
+   *IMPACT: A Generic Semantic Loss for Multimodal Medical Image Registration.*  
+   arXiv:2503.24121 — 2025  
+
+2. **Boussot, V. & Dillenseger, J-L.**  
+   *KonfAI: A Modular and Fully Configurable Framework for Deep Learning in Medical Imaging.*  
+   arXiv:2508.09823 — 2025  
