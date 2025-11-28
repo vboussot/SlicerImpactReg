@@ -1,2 +1,6 @@
 build
 Preset
+.mypy_cache
+__pycache__
+ImpactReg/Resources/bin
+Test
