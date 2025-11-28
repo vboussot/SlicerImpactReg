@@ -2,5 +2,5 @@ build
 Preset
 .mypy_cache
 __pycache__
-ImpactReg/Resources/bin/elastix-impact-linux-shared-with-deps-cpu
+ImpactReg/Resources/bin/elastix-*
 Test
