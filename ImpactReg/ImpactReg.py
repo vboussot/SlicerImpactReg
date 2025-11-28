@@ -10,6 +10,7 @@ import numpy as np
 import SimpleITK as sitk  # noqa: N813
 import sitkUtils
 import slicer
+import torch
 from huggingface_hub import hf_hub_download, list_repo_files
 from KonfAI import AppTemplateWidget, KonfAICoreWidget, KonfAIMetricsPanel, Process
 from konfai.evaluator import Statistics
@@ -767,9 +768,12 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.on_run_button(self.registration)
 
     def get_elastix_bin(self) -> None:
+        file = "elastix-impact-{}-shared-with-deps-{}".format(
+            "win64" if platform.system() == "Windows" else "linux", "cu126" if torch.cuda.is_available() else "cpu"
+        )
         path = Path(os.path.dirname(os.path.abspath(__file__))) / "Resources" / "bin"
         executable = "elastix.exe" if platform.system() == "Windows" else "elastix"
-        matches = list(path.rglob(executable))
+        matches = list((path / file).rglob(executable))
         if len(matches) > 0:
             if len(matches) > 1:
                 print("[WARNING] Multiple elastix binaries found, using the first one:")
@@ -791,11 +795,10 @@ class ElastixImpactWidget(AppTemplateWidget):
                 return
             self._elastix_bin = path / executable
             if self._elastix_bin.exists():
-                print("Download finished.")
                 self.registration()
             self.set_running(False)
 
-        self.process.run("python", path, ["Download.py"], on_en_function)
+        self.process.run(shutil.which("PythonSlicer"), path, ["Download.py"], on_en_function)
 
     def next_registration(
         self,

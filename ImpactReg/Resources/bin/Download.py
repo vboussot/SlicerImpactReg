@@ -26,7 +26,6 @@ def download():
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
                         pbar.update(len(chunk))
-        print("Download finished.")
         with zipfile.ZipFile(file, "r") as z:
             z.extractall(file.replace(".zip", ""))
         os.remove(file)
