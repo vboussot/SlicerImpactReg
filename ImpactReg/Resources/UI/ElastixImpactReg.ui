@@ -1,795 +1,815 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ElastixImpactRegWidget</class>
- <widget class="qMRMLWidget" name="ElastixImpactRegWidget">
-    <layout class="QVBoxLayout" name="verticalLayout_inferenceTab">
-    <item>
-    <widget class="ctkCollapsibleButton" name="registrationCollapsible">
-     <property name="text">
-      <string>Registration</string>
-     </property>
-     <layout class="QVBoxLayout" name="registrationLayout">
-        <item>
-  <widget class="QWidget" name="registrationTabWidget">
-    <layout class="QVBoxLayout" name="vLayout_registrationTab">
-      <item>
-        <widget class="QWidget" name="inputsCollapsible">
-          <layout class="QFormLayout" name="formLayout_inputs">
-
-            <!-- Fixed volume -->
-            <item row="0" column="0">
-              <widget class="QLabel" name="label_fixed_volume">
-                <property name="text">
-                  <string>Fixed volume</string>
-                </property>
-              </widget>
-            </item>
-            <item row="0" column="1">
-              <widget class="qMRMLNodeComboBox" name="fixedVolumeSelector">
-                <property name="toolTip">
-                  <string>Pick the fixed volume for the registration.</string>
-                </property>
-                <property name="nodeTypes">
-                  <stringlist>
-                    <string>vtkMRMLScalarVolumeNode</string>
-                  </stringlist>
-                </property>
-                <property name="showChildNodeTypes">
-                  <bool>false</bool>
-                </property>
-                <property name="addEnabled">
-                  <bool>false</bool>
-                </property>
-                <property name="removeEnabled">
-                  <bool>false</bool>
-                </property>
-              </widget>
-            </item>
-
-            <!-- Moving volume -->
-            <item row="1" column="0">
-              <widget class="QLabel" name="label_moving_volume">
-                <property name="text">
-                  <string>Moving volume</string>
-                </property>
-              </widget>
-            </item>
-            <item row="1" column="1">
-              <widget class="qMRMLNodeComboBox" name="movingVolumeSelector">
-                <property name="toolTip">
-                  <string>Pick the moving volume for the registration.</string>
-                </property>
-                <property name="nodeTypes">
-                  <stringlist>
-                    <string>vtkMRMLScalarVolumeNode</string>
-                  </stringlist>
-                </property>
-                <property name="showChildNodeTypes">
-                  <bool>false</bool>
-                </property>
-                <property name="addEnabled">
-                  <bool>false</bool>
-                </property>
-                <property name="removeEnabled">
-                  <bool>false</bool>
-                </property>
-              </widget>
-            </item>
-
-            <!-- Preset row -->
-            <item row="2" column="0">
-              <widget class="QLabel" name="label_preset">
-                <property name="text">
-                  <string>Preset</string>
-                </property>
-              </widget>
-            </item>
-            <item row="2" column="1">
-              <layout class="QHBoxLayout" name="hLayout_preset">
-                <item>
-                  <widget class="QComboBox" name="parameterMapPresetComboBox">
-                    <property name="toolTip">
-                      <string>Select registration preset</string>
-                    </property>
-                  </widget>
-                </item>
-                <item>
-                  <widget class="QPushButton" name="publishButton">
-                    <property name="visible">
-                      <bool>false</bool>
-                    </property>
-                    <property name="toolTip">
-                      <string>Publish preset</string>
-                    </property>
-                    <property name="text">
-                      <string>Publish</string>
-                    </property>
-                    <property name="autoDefault">
-                      <bool>false</bool>
-                    </property>
-                    <property name="default">
-                      <bool>false</bool>
-                    </property>
-                    <property name="maximumSize">
-                      <size>
-                        <width>100</width>
-                        <height>24</height>
-                      </size>
-                    </property>
-                    <property name="minimumSize">
-                      <size>
-                        <width>80</width>
-                        <height>24</height>
-                      </size>
-                    </property>
-                  </widget>
-                </item>
-                <item>
-                  <widget class="QPushButton" name="presetButton">
-                    <property name="toolTip">
-                      <string>Open preset folder</string>
-                    </property>
-                    <property name="iconSize">
-                      <size>
-                        <width>16</width>
-                        <height>16</height>
-                      </size>
-                    </property>
-                    <property name="flat">
-                      <bool>true</bool>
-                    </property>
-                    <property name="text">
-                      <string/>
-                    </property>
-                    <property name="maximumSize">
-                      <size>
-                        <width>24</width>
-                        <height>24</height>
-                      </size>
-                    </property>
-                    <property name="minimumSize">
-                      <size>
-                        <width>24</width>
-                        <height>24</height>
-                      </size>
-                    </property>
-                    <property name="styleSheet">
-                      <string notr="true">padding:0px; margin:0px;</string>
-                    </property>
-                  </widget>
-                </item>
-                <item>
-                  <widget class="QPushButton" name="removePresetButton">
-                    <property name="toolTip">
-                      <string>Remove preset</string>
-                    </property>
-                    <property name="icon">
-                      <iconset>
-                        <normaloff>:/Icons/minus.png</normaloff>:/Icons/minus.png
-                      </iconset>
-                    </property>
-                    <property name="iconSize">
-                      <size>
-                        <width>16</width>
-                        <height>16</height>
-                      </size>
-                    </property>
-                    <property name="flat">
-                      <bool>true</bool>
-                    </property>
-                    <property name="text">
-                      <string/>
-                    </property>
-                    <property name="maximumSize">
-                      <size>
-                        <width>24</width>
-                        <height>24</height>
-                      </size>
-                    </property>
-                    <property name="minimumSize">
-                      <size>
-                        <width>24</width>
-                        <height>24</height>
-                      </size>
-                    </property>
-                    <property name="styleSheet">
-                      <string notr="true">padding:0px; margin:0px;</string>
-                    </property>
-                  </widget>
-                </item>
-                <item>
-                  <widget class="QPushButton" name="addPresetButton">
-                    <property name="toolTip">
-                      <string>Add preset</string>
-                    </property>
-                    <property name="icon">
-                      <iconset>
-                        <normaloff>:/Icons/plus.png</normaloff>:/Icons/plus.png
-                      </iconset>
-                    </property>
-                    <property name="iconSize">
-                      <size>
-                        <width>16</width>
-                        <height>16</height>
-                      </size>
-                    </property>
-                    <property name="flat">
-                      <bool>true</bool>
-                    </property>
-                    <property name="text">
-                      <string/>
-                    </property>
-                    <property name="maximumSize">
-                      <size>
-                        <width>24</width>
-                        <height>24</height>
-                      </size>
-                    </property>
-                    <property name="minimumSize">
-                      <size>
-                        <width>24</width>
-                        <height>24</height>
-                      </size>
-                    </property>
-                    <property name="styleSheet">
-                      <string notr="true">padding:0px; margin:0px;</string>
-                    </property>
-                  </widget>
-                </item>
-              </layout>
-            </item>
-
-            <!-- Description -->
-            <item row="3" column="1">
-              <layout class="QVBoxLayout" name="descriptionLayout">
-                <property name="spacing">
-                  <number>0</number>
-                </property>
-                <property name="leftMargin">
-                  <number>0</number>
-                </property>
-                <property name="topMargin">
-                  <number>0</number>
-                </property>
-                <property name="rightMargin">
-                  <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                  <number>0</number>
-                </property>
-                <item>
-                  <widget class="QLabel" name="presetDescriptionLabel">
-                    <property name="wordWrap">
-                      <bool>true</bool>
-                    </property>
-                    <property name="alignment">
-                      <set>Qt::AlignTop|Qt::AlignLeft</set>
-                    </property>
-                    <property name="styleSheet">
-                      <string notr="true">QLabel{margin:0;padding:0;border:none;background:transparent;}</string>
-                    </property>
-                  </widget>
-                </item>
-                <item alignment="Qt::AlignLeft">
-                  <widget class="QPushButton" name="toggleDescriptionButton">
-                    <property name="text">
-                      <string>More ▼</string>
-                    </property>
-                    <property name="flat">
-                      <bool>true</bool>
-                    </property>
-                    <property name="maximumWidth">
-                      <number>60</number>
-                    </property>
-                    <property name="styleSheet">
-                      <string notr="true">QPushButton{padding:0;margin:0;color:#0078d4;text-decoration:underline;}</string>
-                    </property>
-                  </widget>
-                </item>
-              </layout>
-            </item>
-
-
-<!-- Selected presets chips container -->
-<item row="4" column="0">
-  <widget class="QLabel" name="label_selected_presets">
-    <property name="text">
-      <string>Selected presets</string>
-    </property>
-  </widget>
-</item>
-
-<!-- Selected presets chips container -->
-<item row="4" column="1">
-  <widget class="QWidget" name="selectedPresetsWidget">
-    <layout class="QHBoxLayout" name="hLayout_selectedPresets">
-      <property name="spacing">
-        <number>4</number>
-      </property>
-      <item>
-        <spacer name="horizontalSpacer_selectedPresets">
-          <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-            <size>
-              <width>40</width>
-              <height>20</height>
-            </size>
-          </property>
-        </spacer>
-      </item>
-    </layout>
-  </widget>
-</item>
-
-
-                <!-- Fixed mask -->
-                <item row="5" column="0">
-                    <widget class="QLabel" name="label_fixedMask">
-                    <property name="text">
-                        <string>Fixed mask</string>
-                    </property>
-                    </widget>
-                </item>
-                <item row="5" column="1">
-                    <widget class="qMRMLNodeComboBox" name="fixedMaskSelector">
-                    <property name="toolTip">
-                        <string>Select a binary labelmap or segmentation as fixed mask.</string>
-                    </property>
-                    <property name="nodeTypes">
-                        <stringlist>
-                        <string>vtkMRMLLabelMapVolumeNode</string>
-                        <string>vtkMRMLSegmentationNode</string>
-                        </stringlist>
-                    </property>
-                    <property name="showChildNodeTypes">
-                        <bool>false</bool>
-                    </property>
-                    <property name="addEnabled">
-                        <bool>false</bool>
-                    </property>
-                    <property name="removeEnabled">
-                        <bool>false</bool>
-                    </property>
-                    </widget>
-                </item>
-
-                <!-- Moving mask -->
-                <item row="6" column="0">
-                    <widget class="QLabel" name="label_movingMask">
-                    <property name="text">
-                        <string>Moving mask</string>
-                    </property>
-                    </widget>
-                </item>
-                <item row="6" column="1">
-                    <widget class="qMRMLNodeComboBox" name="movingMaskSelector">
-                    <property name="toolTip">
-                        <string>Select a binary labelmap or segmentation as moving mask.</string>
-                    </property>
-                    <property name="nodeTypes">
-                        <stringlist>
-                        <string>vtkMRMLLabelMapVolumeNode</string>
-                        <string>vtkMRMLSegmentationNode</string>
-                        </stringlist>
-                    </property>
-                    <property name="showChildNodeTypes">
-                        <bool>false</bool>
-                    </property>
-                    <property name="addEnabled">
-                        <bool>false</bool>
-                    </property>
-                    <property name="removeEnabled">
-                        <bool>false</bool>
-                    </property>
-                    </widget>
-                </item>
-                <item row="7" column="0"><widget class="QLabel" name="label_outputTransform"><property name="text"><string>Output transform</string></property></widget></item>
-                <item row="7" column="1">
-                  <widget class="qMRMLNodeComboBox" name="outputTransformSelector">
-                    <property name="nodeTypes"><stringlist><string>vtkMRMLTransformNode</string></stringlist></property>
-                    <property name="noneEnabled"><bool>true</bool></property>
-                    <property name="noneDisplay"><string>None</string></property>
-                  </widget>
-              </item>
-          </layout>
-        </widget>
-      </item>
-       <!-- ===== Run row ===== -->
-      <item>
-        <layout class="QHBoxLayout" name="runRow">
-        <item>
-          <widget class="QPushButton" name="runRegistrationButton">
-          <property name="enabled"><bool>false</bool></property>
-          <property name="toolTip"><string>Start processing.</string></property>
-          <property name="text"><string>Run</string></property>
-          <property name="default"><bool>true</bool></property>
-          </widget>
-        </item>
-
-        </layout>
-      </item>
-        </layout>
-      </widget>
-    </item>
-
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="ctkCollapsibleButton" name="evaluationCollapsible">
-     <property name="text">
-      <string>Evaluation</string>
-     </property>
-     <property name="collapsed">
-        <bool>true</bool>
-    </property>
-     <layout class="QVBoxLayout" name="evaluationLayout">
-        <item>
-        <widget class="QTabWidget" name="qaTabWidget">
-          <widget class="QWidget" name="withRefTab">
-            <attribute name="title"><string>With reference</string></attribute>
-            <layout class="QFormLayout" name="formLayout_qa_ref">
-                <property name="horizontalSpacing"><number>8</number></property>
-                <property name="verticalSpacing"><number>4</number></property>
-
-                  <item row="0" column="0" colspan="2">
-                <widget class="QTabWidget" name="inputTabs">
-                  <!-- ======================= TAB 1 : IMAGES ======================= -->
-                  <widget class="QWidget" name="imagesTab">
-                    <attribute name="title">
-                      <string>Images</string>
-                    </attribute>
-                    <layout class="QGridLayout" name="imagesGrid">
-
-                      <!-- Fixed Image -->
-                      <item row="0" column="0">
-                        <widget class="QLabel" name="fixedImageEvaluationLabel">
-                          <property name="text">
-                            <string>Fixed Image</string>
-                          </property>
-                        </widget>
-                      </item>
-
-                      <item row="0" column="1">
-                        <widget class="qMRMLNodeComboBox" name="fixedImageEvaluationSelector">
-                          <property name="nodeTypes">
-                            <stringlist>
-                              <string>vtkMRMLScalarVolumeNode</string>
-                            </stringlist>
-                          </property>
-                          <property name="noneEnabled"><bool>true</bool></property>
-                          <property name="noneDisplay"><string>None</string></property>
-                        </widget>
-                      </item>
-
-                      <!-- Moving Image -->
-                      <item row="1" column="0">
-                        <widget class="QLabel" name="movingImageEvaluationLabel">
-                          <property name="text">
-                            <string>Moving Image</string>
-                          </property>
-                        </widget>
-                      </item>
-
-                      <item row="1" column="1">
-                        <widget class="qMRMLNodeComboBox" name="movingImageEvaluationSelector">
-                          <property name="nodeTypes">
-                            <stringlist>
-                              <string>vtkMRMLScalarVolumeNode</string>
-                            </stringlist>
-                          </property>
-                          <property name="noneEnabled"><bool>true</bool></property>
-                          <property name="noneDisplay"><string>None</string></property>
-                        </widget>
-                      </item>
-
-                    </layout>
-                  </widget>
-
-                  <!-- ======================= TAB 2 : SEGMENTATIONS ======================= -->
-                  <widget class="QWidget" name="segmentationsTab">
-                    <attribute name="title">
-                      <string>Segmentations</string>
-                    </attribute>
-                    <layout class="QGridLayout" name="segmentationsGrid">
-
-                      <!-- Fixed Segmentation -->
-                      <item row="0" column="0">
-                        <widget class="QLabel" name="fixedSegEvaluationLabel">
-                          <property name="text">
-                            <string>Fixed Segmentation</string>
-                          </property>
-                        </widget>
-                      </item>
-
-                      <item row="0" column="1">
-                        <widget class="qMRMLNodeComboBox" name="fixedSegEvaluationSelector">
-                          <property name="nodeTypes">
-                            <stringlist>
-                                <string>vtkMRMLLabelMapVolumeNode</string>
-                                <string>vtkMRMLSegmentationNode</string>
-                            </stringlist>
-                          </property>
-                          <property name="noneEnabled"><bool>true</bool></property>
-                          <property name="noneDisplay"><string>None</string></property>
-                        </widget>
-                      </item>
-
-                      <!-- Moving Segmentation -->
-                      <item row="1" column="0">
-                        <widget class="QLabel" name="movingSegEvaluationLabel">
-                          <property name="text">
-                            <string>Moving Segmentation</string>
-                          </property>
-                        </widget>
-                      </item>
-
-                      <item row="1" column="1">
-                        <widget class="qMRMLNodeComboBox" name="movingSegEvaluationSelector">
-                          <property name="nodeTypes">
-                            <stringlist>
-                                <string>vtkMRMLLabelMapVolumeNode</string>
-                                <string>vtkMRMLSegmentationNode</string>
-                            </stringlist>
-                          </property>
-                          <property name="noneEnabled"><bool>true</bool></property>
-                          <property name="noneDisplay"><string>None</string></property>
-                        </widget>
-                      </item>
-
-                    </layout>
-                  </widget>
-
-                  <!-- ======================= TAB 3 : FIDUCIALS ======================= -->
-                  <widget class="QWidget" name="fiducialsTab">
-                    <attribute name="title">
-                      <string>Fiducials</string>
-                    </attribute>
-                    <layout class="QGridLayout" name="fiducialsGrid">
-
-                      <!-- Fixed Fiducials -->
-                      <item row="0" column="0">
-                        <widget class="QLabel" name="fixedFidEvaluationLabel">
-                          <property name="text">
-                            <string>Fixed Fiducials</string>
-                          </property>
-                        </widget>
-                      </item>
-
-                      <item row="0" column="1">
-                        <widget class="qMRMLNodeComboBox" name="fixedFidEvaluationSelector">
-                          <property name="nodeTypes">
-                            <stringlist>
-                              <string>vtkMRMLMarkupsFiducialNode</string>
-                            </stringlist>
-                          </property>
-                          <property name="noneEnabled"><bool>true</bool></property>
-                          <property name="noneDisplay"><string>None</string></property>
-                        </widget>
-                      </item>
-
-                      <!-- Moving Fiducials -->
-                      <item row="1" column="0">
-                        <widget class="QLabel" name="movingFidEvaluationLabel">
-                          <property name="text">
-                            <string>Moving Fiducials</string>
-                          </property>
-                        </widget>
-                      </item>
-
-                      <item row="1" column="1">
-                        <widget class="qMRMLNodeComboBox" name="movingFidEvaluationSelector">
-                          <property name="nodeTypes">
-                            <stringlist>
-                              <string>vtkMRMLMarkupsFiducialNode</string>
-                            </stringlist>
-                          </property>
-                          <property name="noneEnabled"><bool>true</bool></property>
-                          <property name="noneDisplay"><string>None</string></property>
-                        </widget>
-                      </item>
-
-                    </layout>
-                  </widget>
-
-                </widget>
-
-                </item>
-                 <!-- Reference mask -->
-                <item row="2" column="0">
-                    <widget class="QLabel" name="label_refMask">
-                      <property name="text">
-                          <string>Mask (Optional)</string>
-                      </property>
-                    </widget>
-                </item>
-                <item row="2" column="1">
-                    <widget class="qMRMLNodeComboBox" name="referenceMaskSelector">
-                      <property name="nodeTypes">
-                          <stringlist>
-                            <string>vtkMRMLLabelMapVolumeNode</string>
-                            <string>vtkMRMLSegmentationNode</string>
-                          </stringlist>
-                      </property>
-                      <property name="noneEnabled">
-                          <bool>true</bool>
-                      </property>
-                      <property name="noneDisplay">
-                          <string>None</string>
-                      </property>
-                    </widget>
-                </item>
-                 <item row="3" column="0">
-                  <widget class="QLabel" name="qaTransformLabel">
-                    <property name="text">
-                      <string>Transform</string>
-                    </property>
-                  </widget>
-                </item>
-                <item row="3" column="1">
-                  <widget class="qMRMLNodeComboBox" name="inputTransformSelector">
-                    <property name="nodeTypes">
-                      <stringlist>
-                        <string>vtkMRMLTransformNode</string>
-                      </stringlist>
-                    </property>
-                    <property name="noneEnabled"><bool>true</bool></property>
-                    <property name="noneDisplay"><string>None</string></property>
-                  </widget>
-                </item>
-
-                <item row="4" column="0" colspan="2">
-                  <widget class="QWidget" name="withRefMetricsPlaceholder">
-                    <layout class="QVBoxLayout" name="withRefMetricsLayout"/>
-                  </widget>
-                </item>
-            </layout>
-          </widget>
-
-          <widget class="QWidget" name="noRefTab">
-            <attribute name="title"><string>No reference (Uncertainty)</string></attribute>
-              <layout class="QFormLayout" name="formLayout_qa_ref">
-                <property name="horizontalSpacing"><number>8</number></property>
-                <property name="verticalSpacing"><number>4</number></property>
-                <item row="0" column="0"><widget class="QLabel" name="label_outputVolume"><property name="text"><string>Transform Sequence</string></property></widget></item>
-                <item row="0" column="1">
-                  <widget class="qMRMLNodeComboBox" name="inputTransformSequenceSelector">
-                    <property name="nodeTypes"><stringlist><string>vtkMRMLSequenceNode</string></stringlist></property>
-                    <property name="noneEnabled"><bool>true</bool></property>
-                  </widget>
-                </item>
-                <item row="1" column="0" colspan="2">
-                  <widget class="QWidget" name="noRefMetricsPlaceholder">
-                    <layout class="QVBoxLayout" name="noRefMetricsLayout"/>
-                  </widget>
-                </item>
-              </layout>
-          </widget>
-        </widget>
-      </item>
-
-      <!-- ===== Run row ===== -->
-      <item  row="4" column="0">
-        <layout class="QHBoxLayout" name="runEvaluationRow">
-          <item>
-            <widget class="QPushButton" name="runEvaluationButton">
-              <property name="enabled"><bool>false</bool></property>
-              <property name="toolTip"><string>Start evaluation.</string></property>
-              <property name="text"><string>Run</string></property>
-              <property name="default"><bool>true</bool></property>
+   <class>ElastixImpactRegWidget</class>
+   <widget class="qMRMLWidget" name="ElastixImpactRegWidget">
+      <layout class="QVBoxLayout" name="verticalLayout_inferenceTab">
+         <item>
+            <widget class="ctkCollapsibleButton" name="registrationCollapsible">
+               <property name="text">
+                  <string>Registration</string>
+               </property>
+               <layout class="QVBoxLayout" name="registrationLayout">
+                  <item>
+                     <widget class="QWidget" name="registrationTabWidget">
+                        <layout class="QVBoxLayout" name="vLayout_registrationTab">
+                           <item>
+                              <widget class="QWidget" name="inputsCollapsible">
+                                 <layout class="QFormLayout" name="formLayout_inputs">
+                                    <!-- Fixed volume -->
+                                    <item row="0" column="0">
+                                       <widget class="QLabel" name="label_fixed_volume">
+                                          <property name="text">
+                                             <string>Fixed volume</string>
+                                          </property>
+                                       </widget>
+                                    </item>
+                                    <item row="0" column="1">
+                                       <widget class="qMRMLNodeComboBox" name="fixedVolumeSelector">
+                                          <property name="toolTip">
+                                             <string>Pick the fixed volume for the registration.</string>
+                                          </property>
+                                          <property name="nodeTypes">
+                                             <stringlist>
+                                                <string>vtkMRMLScalarVolumeNode</string>
+                                             </stringlist>
+                                          </property>
+                                          <property name="showChildNodeTypes">
+                                             <bool>false</bool>
+                                          </property>
+                                          <property name="addEnabled">
+                                             <bool>false</bool>
+                                          </property>
+                                          <property name="removeEnabled">
+                                             <bool>false</bool>
+                                          </property>
+                                       </widget>
+                                    </item>
+                                    <!-- Moving volume -->
+                                    <item row="1" column="0">
+                                       <widget class="QLabel" name="label_moving_volume">
+                                          <property name="text">
+                                             <string>Moving volume</string>
+                                          </property>
+                                       </widget>
+                                    </item>
+                                    <item row="1" column="1">
+                                       <widget class="qMRMLNodeComboBox" name="movingVolumeSelector">
+                                          <property name="toolTip">
+                                             <string>Pick the moving volume for the registration.</string>
+                                          </property>
+                                          <property name="nodeTypes">
+                                             <stringlist>
+                                                <string>vtkMRMLScalarVolumeNode</string>
+                                             </stringlist>
+                                          </property>
+                                          <property name="showChildNodeTypes">
+                                             <bool>false</bool>
+                                          </property>
+                                          <property name="addEnabled">
+                                             <bool>false</bool>
+                                          </property>
+                                          <property name="removeEnabled">
+                                             <bool>false</bool>
+                                          </property>
+                                       </widget>
+                                    </item>
+                                    <!-- Preset row -->
+                                    <item row="2" column="0">
+                                       <widget class="QLabel" name="label_preset">
+                                          <property name="text">
+                                             <string>Preset</string>
+                                          </property>
+                                       </widget>
+                                    </item>
+                                    <item row="2" column="1">
+                                       <layout class="QHBoxLayout" name="hLayout_preset">
+                                          <item>
+                                             <widget class="QComboBox" name="parameterMapPresetComboBox">
+                                                <property name="toolTip">
+                                                   <string>Select registration preset</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <item>
+                                             <widget class="QPushButton" name="publishButton">
+                                                <property name="visible">
+                                                   <bool>false</bool>
+                                                </property>
+                                                <property name="toolTip">
+                                                   <string>Publish preset</string>
+                                                </property>
+                                                <property name="text">
+                                                   <string>Publish</string>
+                                                </property>
+                                                <property name="autoDefault">
+                                                   <bool>false</bool>
+                                                </property>
+                                                <property name="default">
+                                                   <bool>false</bool>
+                                                </property>
+                                                <property name="maximumSize">
+                                                   <size>
+                                                      <width>100</width>
+                                                      <height>24</height>
+                                                   </size>
+                                                </property>
+                                                <property name="minimumSize">
+                                                   <size>
+                                                      <width>80</width>
+                                                      <height>24</height>
+                                                   </size>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <item>
+                                             <widget class="QPushButton" name="presetButton">
+                                                <property name="toolTip">
+                                                   <string>Open preset folder</string>
+                                                </property>
+                                                <property name="iconSize">
+                                                   <size>
+                                                      <width>16</width>
+                                                      <height>16</height>
+                                                   </size>
+                                                </property>
+                                                <property name="flat">
+                                                   <bool>true</bool>
+                                                </property>
+                                                <property name="text">
+                                                   <string />
+                                                </property>
+                                                <property name="maximumSize">
+                                                   <size>
+                                                      <width>24</width>
+                                                      <height>24</height>
+                                                   </size>
+                                                </property>
+                                                <property name="minimumSize">
+                                                   <size>
+                                                      <width>24</width>
+                                                      <height>24</height>
+                                                   </size>
+                                                </property>
+                                                <property name="styleSheet">
+                                                   <string notr="true">padding:0px; margin:0px;</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <item>
+                                             <widget class="QPushButton" name="removePresetButton">
+                                                <property name="toolTip">
+                                                   <string>Remove preset</string>
+                                                </property>
+                                                <property name="icon">
+                                                   <iconset>
+                                                      <normaloff>:/Icons/minus.png</normaloff>
+                                                      :/Icons/minus.png
+                                                   </iconset>
+                                                </property>
+                                                <property name="iconSize">
+                                                   <size>
+                                                      <width>16</width>
+                                                      <height>16</height>
+                                                   </size>
+                                                </property>
+                                                <property name="flat">
+                                                   <bool>true</bool>
+                                                </property>
+                                                <property name="text">
+                                                   <string />
+                                                </property>
+                                                <property name="maximumSize">
+                                                   <size>
+                                                      <width>24</width>
+                                                      <height>24</height>
+                                                   </size>
+                                                </property>
+                                                <property name="minimumSize">
+                                                   <size>
+                                                      <width>24</width>
+                                                      <height>24</height>
+                                                   </size>
+                                                </property>
+                                                <property name="styleSheet">
+                                                   <string notr="true">padding:0px; margin:0px;</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <item>
+                                             <widget class="QPushButton" name="addPresetButton">
+                                                <property name="toolTip">
+                                                   <string>Add preset</string>
+                                                </property>
+                                                <property name="icon">
+                                                   <iconset>
+                                                      <normaloff>:/Icons/plus.png</normaloff>
+                                                      :/Icons/plus.png
+                                                   </iconset>
+                                                </property>
+                                                <property name="iconSize">
+                                                   <size>
+                                                      <width>16</width>
+                                                      <height>16</height>
+                                                   </size>
+                                                </property>
+                                                <property name="flat">
+                                                   <bool>true</bool>
+                                                </property>
+                                                <property name="text">
+                                                   <string />
+                                                </property>
+                                                <property name="maximumSize">
+                                                   <size>
+                                                      <width>24</width>
+                                                      <height>24</height>
+                                                   </size>
+                                                </property>
+                                                <property name="minimumSize">
+                                                   <size>
+                                                      <width>24</width>
+                                                      <height>24</height>
+                                                   </size>
+                                                </property>
+                                                <property name="styleSheet">
+                                                   <string notr="true">padding:0px; margin:0px;</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                       </layout>
+                                    </item>
+                                    <!-- Description -->
+                                    <item row="3" column="1">
+                                       <layout class="QVBoxLayout" name="descriptionLayout">
+                                          <property name="spacing">
+                                             <number>0</number>
+                                          </property>
+                                          <property name="leftMargin">
+                                             <number>0</number>
+                                          </property>
+                                          <property name="topMargin">
+                                             <number>0</number>
+                                          </property>
+                                          <property name="rightMargin">
+                                             <number>0</number>
+                                          </property>
+                                          <property name="bottomMargin">
+                                             <number>0</number>
+                                          </property>
+                                          <item>
+                                             <widget class="QLabel" name="presetDescriptionLabel">
+                                                <property name="wordWrap">
+                                                   <bool>true</bool>
+                                                </property>
+                                                <property name="alignment">
+                                                   <set>Qt::AlignTop|Qt::AlignLeft</set>
+                                                </property>
+                                                <property name="styleSheet">
+                                                   <string notr="true">QLabel{margin:0;padding:0;border:none;background:transparent;}</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <item alignment="Qt::AlignLeft">
+                                             <widget class="QPushButton" name="toggleDescriptionButton">
+                                                <property name="text">
+                                                   <string>More ▼</string>
+                                                </property>
+                                                <property name="flat">
+                                                   <bool>true</bool>
+                                                </property>
+                                                <property name="maximumWidth">
+                                                   <number>60</number>
+                                                </property>
+                                                <property name="styleSheet">
+                                                   <string notr="true">QPushButton{padding:0;margin:0;color:#0078d4;text-decoration:underline;}</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                       </layout>
+                                    </item>
+                                    <!-- Selected presets chips container -->
+                                    <item row="4" column="0">
+                                       <widget class="QLabel" name="label_selected_presets">
+                                          <property name="text">
+                                             <string>Selected presets</string>
+                                          </property>
+                                       </widget>
+                                    </item>
+                                    <!-- Selected presets chips container -->
+                                    <item row="4" column="1">
+                                       <widget class="QWidget" name="selectedPresetsWidget">
+                                          <layout class="QHBoxLayout" name="hLayout_selectedPresets">
+                                             <property name="spacing">
+                                                <number>4</number>
+                                             </property>
+                                             <item>
+                                                <spacer name="horizontalSpacer_selectedPresets">
+                                                   <property name="orientation">
+                                                      <enum>Qt::Horizontal</enum>
+                                                   </property>
+                                                   <property name="sizeHint" stdset="0">
+                                                      <size>
+                                                         <width>40</width>
+                                                         <height>20</height>
+                                                      </size>
+                                                   </property>
+                                                </spacer>
+                                             </item>
+                                          </layout>
+                                       </widget>
+                                    </item>
+                                    <!-- Fixed mask -->
+                                    <item row="5" column="0">
+                                       <widget class="QLabel" name="label_fixedMask">
+                                          <property name="text">
+                                             <string>Fixed mask</string>
+                                          </property>
+                                       </widget>
+                                    </item>
+                                    <item row="5" column="1">
+                                       <widget class="qMRMLNodeComboBox" name="fixedMaskSelector">
+                                          <property name="toolTip">
+                                             <string>Select a binary labelmap or segmentation as fixed mask.</string>
+                                          </property>
+                                          <property name="nodeTypes">
+                                             <stringlist>
+                                                <string>vtkMRMLLabelMapVolumeNode</string>
+                                                <string>vtkMRMLSegmentationNode</string>
+                                             </stringlist>
+                                          </property>
+                                          <property name="noneEnabled">
+                                             <bool>true</bool>
+                                          </property>
+                                       </widget>
+                                    </item>
+                                    <!-- Moving mask -->
+                                    <item row="6" column="0">
+                                       <widget class="QLabel" name="label_movingMask">
+                                          <property name="text">
+                                             <string>Moving mask</string>
+                                          </property>
+                                       </widget>
+                                    </item>
+                                    <item row="6" column="1">
+                                       <widget class="qMRMLNodeComboBox" name="movingMaskSelector">
+                                          <property name="toolTip">
+                                             <string>Select a binary labelmap or segmentation as moving mask.</string>
+                                          </property>
+                                          <property name="nodeTypes">
+                                             <stringlist>
+                                                <string>vtkMRMLLabelMapVolumeNode</string>
+                                                <string>vtkMRMLSegmentationNode</string>
+                                             </stringlist>
+                                          </property>
+                                          <property name="noneEnabled">
+                                             <bool>true</bool>
+                                          </property>
+                                       </widget>
+                                    </item>
+                                    <item row="7" column="0">
+                                       <widget class="QLabel" name="label_outputTransform">
+                                          <property name="text">
+                                             <string>Output transform</string>
+                                          </property>
+                                       </widget>
+                                    </item>
+                                    <item row="7" column="1">
+                                       <widget class="qMRMLNodeComboBox" name="outputTransformSelector">
+                                          <property name="nodeTypes">
+                                             <stringlist>
+                                                <string>vtkMRMLTransformNode</string>
+                                             </stringlist>
+                                          </property>
+                                          <property name="noneEnabled">
+                                             <bool>true</bool>
+                                          </property>
+                                          <property name="noneDisplay">
+                                             <string>None</string>
+                                          </property>
+                                       </widget>
+                                    </item>
+                                 </layout>
+                              </widget>
+                           </item>
+                           <!-- ===== Run row ===== -->
+                           <item>
+                              <layout class="QHBoxLayout" name="runRow">
+                                 <item>
+                                    <widget class="QPushButton" name="runRegistrationButton">
+                                       <property name="enabled">
+                                          <bool>false</bool>
+                                       </property>
+                                       <property name="toolTip">
+                                          <string>Start processing.</string>
+                                       </property>
+                                       <property name="text">
+                                          <string>Run</string>
+                                       </property>
+                                       <property name="default">
+                                          <bool>true</bool>
+                                       </property>
+                                    </widget>
+                                 </item>
+                              </layout>
+                           </item>
+                        </layout>
+                     </widget>
+                  </item>
+               </layout>
             </widget>
-          </item>
-        </layout>
-      </item> 
-    </layout>
+         </item>
+         <item>
+            <widget class="ctkCollapsibleButton" name="evaluationCollapsible">
+               <property name="text">
+                  <string>Evaluation</string>
+               </property>
+               <property name="collapsed">
+                  <bool>true</bool>
+               </property>
+               <layout class="QVBoxLayout" name="evaluationLayout">
+                  <item>
+                     <widget class="QTabWidget" name="qaTabWidget">
+                        <widget class="QWidget" name="withRefTab">
+                           <attribute name="title">
+                              <string>With reference</string>
+                           </attribute>
+                           <layout class="QFormLayout" name="formLayout_qa_ref">
+                              <property name="horizontalSpacing">
+                                 <number>8</number>
+                              </property>
+                              <property name="verticalSpacing">
+                                 <number>4</number>
+                              </property>
+                              <item row="0" column="0" colspan="2">
+                                 <widget class="QTabWidget" name="inputTabs">
+                                    <!-- ======================= TAB 1 : IMAGES ======================= -->
+                                    <widget class="QWidget" name="imagesTab">
+                                       <attribute name="title">
+                                          <string>Images</string>
+                                       </attribute>
+                                       <layout class="QGridLayout" name="imagesGrid">
+                                          <!-- Fixed Image -->
+                                          <item row="0" column="0">
+                                             <widget class="QLabel" name="fixedImageEvaluationLabel">
+                                                <property name="text">
+                                                   <string>Fixed Image</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <item row="0" column="1">
+                                             <widget class="qMRMLNodeComboBox" name="fixedImageEvaluationSelector">
+                                                <property name="nodeTypes">
+                                                   <stringlist>
+                                                      <string>vtkMRMLScalarVolumeNode</string>
+                                                   </stringlist>
+                                                </property>
+                                                <property name="noneEnabled">
+                                                   <bool>true</bool>
+                                                </property>
+                                                <property name="noneDisplay">
+                                                   <string>None</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <!-- Moving Image -->
+                                          <item row="1" column="0">
+                                             <widget class="QLabel" name="movingImageEvaluationLabel">
+                                                <property name="text">
+                                                   <string>Moving Image</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <item row="1" column="1">
+                                             <widget class="qMRMLNodeComboBox" name="movingImageEvaluationSelector">
+                                                <property name="nodeTypes">
+                                                   <stringlist>
+                                                      <string>vtkMRMLScalarVolumeNode</string>
+                                                   </stringlist>
+                                                </property>
+                                                <property name="noneEnabled">
+                                                   <bool>true</bool>
+                                                </property>
+                                                <property name="noneDisplay">
+                                                   <string>None</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                       </layout>
+                                    </widget>
+                                    <!-- ======================= TAB 2 : SEGMENTATIONS ======================= -->
+                                    <widget class="QWidget" name="segmentationsTab">
+                                       <attribute name="title">
+                                          <string>Segmentations</string>
+                                       </attribute>
+                                       <layout class="QGridLayout" name="segmentationsGrid">
+                                          <!-- Fixed Segmentation -->
+                                          <item row="0" column="0">
+                                             <widget class="QLabel" name="fixedSegEvaluationLabel">
+                                                <property name="text">
+                                                   <string>Fixed Segmentation</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <item row="0" column="1">
+                                             <widget class="qMRMLNodeComboBox" name="fixedSegEvaluationSelector">
+                                                <property name="nodeTypes">
+                                                   <stringlist>
+                                                      <string>vtkMRMLLabelMapVolumeNode</string>
+                                                      <string>vtkMRMLSegmentationNode</string>
+                                                   </stringlist>
+                                                </property>
+                                                <property name="noneEnabled">
+                                                   <bool>true</bool>
+                                                </property>
+                                                <property name="noneDisplay">
+                                                   <string>None</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <!-- Moving Segmentation -->
+                                          <item row="1" column="0">
+                                             <widget class="QLabel" name="movingSegEvaluationLabel">
+                                                <property name="text">
+                                                   <string>Moving Segmentation</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <item row="1" column="1">
+                                             <widget class="qMRMLNodeComboBox" name="movingSegEvaluationSelector">
+                                                <property name="nodeTypes">
+                                                   <stringlist>
+                                                      <string>vtkMRMLLabelMapVolumeNode</string>
+                                                      <string>vtkMRMLSegmentationNode</string>
+                                                   </stringlist>
+                                                </property>
+                                                <property name="noneEnabled">
+                                                   <bool>true</bool>
+                                                </property>
+                                                <property name="noneDisplay">
+                                                   <string>None</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                       </layout>
+                                    </widget>
+                                    <!-- ======================= TAB 3 : FIDUCIALS ======================= -->
+                                    <widget class="QWidget" name="fiducialsTab">
+                                       <attribute name="title">
+                                          <string>Fiducials</string>
+                                       </attribute>
+                                       <layout class="QGridLayout" name="fiducialsGrid">
+                                          <!-- Fixed Fiducials -->
+                                          <item row="0" column="0">
+                                             <widget class="QLabel" name="fixedFidEvaluationLabel">
+                                                <property name="text">
+                                                   <string>Fixed Fiducials</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <item row="0" column="1">
+                                             <widget class="qMRMLNodeComboBox" name="fixedFidEvaluationSelector">
+                                                <property name="nodeTypes">
+                                                   <stringlist>
+                                                      <string>vtkMRMLMarkupsFiducialNode</string>
+                                                   </stringlist>
+                                                </property>
+                                                <property name="noneEnabled">
+                                                   <bool>true</bool>
+                                                </property>
+                                                <property name="noneDisplay">
+                                                   <string>None</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <!-- Moving Fiducials -->
+                                          <item row="1" column="0">
+                                             <widget class="QLabel" name="movingFidEvaluationLabel">
+                                                <property name="text">
+                                                   <string>Moving Fiducials</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                          <item row="1" column="1">
+                                             <widget class="qMRMLNodeComboBox" name="movingFidEvaluationSelector">
+                                                <property name="nodeTypes">
+                                                   <stringlist>
+                                                      <string>vtkMRMLMarkupsFiducialNode</string>
+                                                   </stringlist>
+                                                </property>
+                                                <property name="noneEnabled">
+                                                   <bool>true</bool>
+                                                </property>
+                                                <property name="noneDisplay">
+                                                   <string>None</string>
+                                                </property>
+                                             </widget>
+                                          </item>
+                                       </layout>
+                                    </widget>
+                                 </widget>
+                              </item>
+                              <!-- Reference mask -->
+                              <item row="2" column="0">
+                                 <widget class="QLabel" name="label_refMask">
+                                    <property name="text">
+                                       <string>Mask (Optional)</string>
+                                    </property>
+                                 </widget>
+                              </item>
+                              <item row="2" column="1">
+                                 <widget class="qMRMLNodeComboBox" name="referenceMaskSelector">
+                                    <property name="nodeTypes">
+                                       <stringlist>
+                                          <string>vtkMRMLLabelMapVolumeNode</string>
+                                          <string>vtkMRMLSegmentationNode</string>
+                                       </stringlist>
+                                    </property>
+                                    <property name="noneEnabled">
+                                       <bool>true</bool>
+                                    </property>
+                                    <property name="noneDisplay">
+                                       <string>None</string>
+                                    </property>
+                                 </widget>
+                              </item>
+                              <item row="3" column="0">
+                                 <widget class="QLabel" name="qaTransformLabel">
+                                    <property name="text">
+                                       <string>Transform</string>
+                                    </property>
+                                 </widget>
+                              </item>
+                              <item row="3" column="1">
+                                 <widget class="qMRMLNodeComboBox" name="inputTransformSelector">
+                                    <property name="nodeTypes">
+                                       <stringlist>
+                                          <string>vtkMRMLTransformNode</string>
+                                       </stringlist>
+                                    </property>
+                                    <property name="noneEnabled">
+                                       <bool>true</bool>
+                                    </property>
+                                    <property name="noneDisplay">
+                                       <string>None</string>
+                                    </property>
+                                 </widget>
+                              </item>
+                              <item row="4" column="0" colspan="2">
+                                 <widget class="QWidget" name="withRefMetricsPlaceholder">
+                                    <layout class="QVBoxLayout" name="withRefMetricsLayout" />
+                                 </widget>
+                              </item>
+                           </layout>
+                        </widget>
+                        <widget class="QWidget" name="noRefTab">
+                           <attribute name="title">
+                              <string>No reference (Uncertainty)</string>
+                           </attribute>
+                           <layout class="QFormLayout" name="formLayout_qa_ref">
+                              <property name="horizontalSpacing">
+                                 <number>8</number>
+                              </property>
+                              <property name="verticalSpacing">
+                                 <number>4</number>
+                              </property>
+                              <item row="0" column="0">
+                                 <widget class="QLabel" name="label_outputVolume">
+                                    <property name="text">
+                                       <string>Transform Sequence</string>
+                                    </property>
+                                 </widget>
+                              </item>
+                              <item row="0" column="1">
+                                 <widget class="qMRMLNodeComboBox" name="inputTransformSequenceSelector">
+                                    <property name="nodeTypes">
+                                       <stringlist>
+                                          <string>vtkMRMLSequenceNode</string>
+                                       </stringlist>
+                                    </property>
+                                    <property name="noneEnabled">
+                                       <bool>true</bool>
+                                    </property>
+                                 </widget>
+                              </item>
+                              <item row="1" column="0" colspan="2">
+                                 <widget class="QWidget" name="noRefMetricsPlaceholder">
+                                    <layout class="QVBoxLayout" name="noRefMetricsLayout" />
+                                 </widget>
+                              </item>
+                           </layout>
+                        </widget>
+                     </widget>
+                  </item>
+                  <!-- ===== Run row ===== -->
+                  <item row="4" column="0">
+                     <layout class="QHBoxLayout" name="runEvaluationRow">
+                        <item>
+                           <widget class="QPushButton" name="runEvaluationButton">
+                              <property name="enabled">
+                                 <bool>false</bool>
+                              </property>
+                              <property name="toolTip">
+                                 <string>Start evaluation.</string>
+                              </property>
+                              <property name="text">
+                                 <string>Run</string>
+                              </property>
+                              <property name="default">
+                                 <bool>true</bool>
+                              </property>
+                           </widget>
+                        </item>
+                     </layout>
+                  </item>
+               </layout>
+            </widget>
+         </item>
+      </layout>
    </widget>
-  </item>
-  </layout>
- </widget>
- <resources/>
- <connections>
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>fixedVolumeSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>movingVolumeSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>fixedMaskSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>movingMaskSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>outputTransformSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>inputTransformSequenceSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>fixedImageEvaluationSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-
-
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>movingImageEvaluationSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>fixedSegEvaluationSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-
-
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>movingSegEvaluationSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>fixedFidEvaluationSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-
-
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>movingFidEvaluationSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-
-
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>referenceMaskSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-
-    <connection>
-        <sender>ElastixImpactRegWidget</sender>
-        <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-        <receiver>inputTransformSelector</receiver>
-        <slot>setMRMLScene(vtkMRMLScene*)</slot>
-    </connection>
-
-
- </connections>
+   <resources />
+   <connections>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>fixedVolumeSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>movingVolumeSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>fixedMaskSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>movingMaskSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>outputTransformSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>inputTransformSequenceSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>fixedImageEvaluationSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>movingImageEvaluationSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>fixedSegEvaluationSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>movingSegEvaluationSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>fixedFidEvaluationSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>movingFidEvaluationSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>referenceMaskSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+      <connection>
+         <sender>ElastixImpactRegWidget</sender>
+         <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+         <receiver>inputTransformSelector</receiver>
+         <slot>setMRMLScene(vtkMRMLScene*)</slot>
+      </connection>
+   </connections>
 </ui>

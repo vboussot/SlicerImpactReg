@@ -13,7 +13,7 @@ def download():
         "win64" if platform.system() == "Windows" else "linux", "cu126" if torch.cuda.is_available() else "cpu"
     )
     try:
-        with requests.get(base_url + file, stream=True, timeout=10) as r:
+        with requests.get(base_url + file, stream=True, timeout=60) as r:
             r.raise_for_status()
             total = int(r.headers.get("content-length", 0))
             with open(file, "wb") as f:
