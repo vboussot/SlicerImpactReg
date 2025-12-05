@@ -1,3 +1,5 @@
+<img src="ImpactReg.png" alt="IMPACT reg Logo" width="250" align="right">
+
 # 🔄 Slicer IMPACT-Reg
 
 **Slicer IMPACT-Reg** is an open-source 3D Slicer extension dedicated to **multimodal medical image registration**.  
@@ -96,3 +98,4 @@ Each preset includes:
 2. **Boussot, V. & Dillenseger, J-L.**  
    *KonfAI: A Modular and Fully Configurable Framework for Deep Learning in Medical Imaging.*  
    arXiv:2508.09823 — 2025  
+
