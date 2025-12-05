@@ -138,7 +138,7 @@ class ImpactReg(ScriptedLoadableModule):
             "<p>If you use this module in your research, please cite:<br>"
             "Boussot V. et al.:<br>"
             "<b>IMPACT: A Generic Semantic Loss for Multimodal Medical Image Registration.</b><br>"
-            "arXiv:2503.24121, 2025.<br><br>"
+            '<a href="https://arxiv.org/abs/2503.24121">https://arxiv.org/abs/2503.24121</a><br>'
             "Boussot V., Dillenseger J.-L.:<br>"
             "<b>KonfAI: A Modular and Fully Configurable Framework for Deep Learning in Medical Imaging.</b><br>"
             '<a href="https://arxiv.org/abs/2508.09823">https://arxiv.org/abs/2508.09823</a>'
