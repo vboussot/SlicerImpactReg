@@ -18,11 +18,9 @@ All within a clinically-friendly environment.
 
 | IMPACT-Reg registration workflow | Registration evaluation panel |
 |---------------------------------|-------------------------------|
-| | |
+|  <img src="docs/Registration.png" alt="Registration interface" width="100%"> | <img src="docs/Evaluation.png" alt="Registration interface" width="100%">|
 | *Figure 1 – Multimodal registration interface.* | *Figure 2 – Evaluation with reference labels.* |
 
-<p align="center">
-</p>
 
 ---
 
