@@ -6,7 +6,7 @@
 **Slicer IMPACT-Reg** is an open-source 3D Slicer extension dedicated to **multimodal medical image registration**.  
 It integrates the **IMPACT similarity metric [1]** within the **Elastix** registration engine, bringing state-of-the-art deep semantic alignment directly into Slicer.
 
-Powered by **KonfAI [2]**, the module provides:
+Powered by **KonfAI [2]**, the module provides the following features:
 
 - Fully automated registration pipelines  
 - GPU-accelerated feature extraction  
@@ -99,5 +99,6 @@ Each preset includes:
 2. **Boussot, V. & Dillenseger, J-L.**  
    *KonfAI: A Modular and Fully Configurable Framework for Deep Learning in Medical Imaging.*  
    arXiv:2508.09823 — 2025  
+
 
 
