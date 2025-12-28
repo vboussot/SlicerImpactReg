@@ -1,19 +1,17 @@
 import importlib.util
 import json
 import os
-import platform
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 import numpy as np
 import SimpleITK as sitk  # noqa: N813
 import sitkUtils
 import slicer
-import torch
 from huggingface_hub import hf_hub_download, list_repo_files
 from KonfAI import AppTemplateWidget, KonfAICoreWidget, KonfAIMetricsPanel, Process
-from konfai.evaluator import Statistics
 from qt import QDesktopServices, QIcon, QProcess, QPushButton, QSize, QUrl, QWidget
 from slicer.i18n import tr as _
 from slicer.i18n import translate
@@ -71,7 +69,7 @@ class ElastixProcess(Process):
         if line:
             line = line.replace("\r\n", "\n").split("\r")[-1]
             self._update_logs(line)
-            match = re.search(r"(\d+)%", line)
+            match = re.search(r"(\d+)%\|", line)
             if match:
                 percent = int(match.group(1))
                 self._update_progress(percent, "")
@@ -298,7 +296,7 @@ class ElastixImpactWidget(AppTemplateWidget):
     def __init__(self, name: str, repo_id: str):
         super().__init__(name, slicer.util.loadUI(resource_path("UI/ElastixImpactReg.ui")))
         self.repo_id = repo_id
-        self._elastix_bin: None | Path = None
+        self._elastix_bin = Path(resource_path("bin")) / "elastix-impact" / "bin" / "elastix"
 
         # QA panels (with/without reference metrics)
         self.evaluation_panel = KonfAIMetricsPanel()
@@ -722,6 +720,8 @@ class ElastixImpactWidget(AppTemplateWidget):
                 self.set_running(False)
                 return
             try:
+                from konfai.evaluator import Statistics
+
                 statistics = Statistics((self._work_dir / "Evaluation").rglob("*.json").__next__())
                 self.evaluation_panel.set_metrics(statistics.read())
                 self.evaluation_panel.refresh_images_list(
@@ -962,6 +962,7 @@ class ElastixImpactWidget(AppTemplateWidget):
                 self.set_running(False)
                 return
             try:
+                from konfai.evaluator import Statistics
                 statistics = Statistics((self._work_dir / "Uncertainty").rglob("*.json").__next__())
                 self.uncertainty_panel.set_metrics(statistics.read())
                 self.uncertainty_panel.refresh_images_list(
@@ -978,7 +979,38 @@ class ElastixImpactWidget(AppTemplateWidget):
         """Entry point for the 'Run' button: start or stop registration."""
         self.on_run_button(self.registration)
 
-    def get_elastix_bin(self) -> None:
+    def try_elastix(self) -> str:
+        try:
+            subprocess.run(
+                [str(self._elastix_bin), "-h"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            return ""
+
+        except subprocess.CalledProcessError as e:
+            msg = "Elastix execution failed.\n\n"
+
+            msg += f"Command:\n{' '.join(e.cmd)}\n"
+            msg += f"Return code: {e.returncode}\n\n"
+
+            if e.stderr:
+                msg += "Error output:\n"
+                msg += e.stderr.strip()
+            return msg
+
+        except OSError as e:
+            msg = (
+                "Elastix could not be started.\n\n"
+                "This is usually caused by missing shared libraries "
+                "(e.g. LibTorch or CUDA runtime).\n\n"
+                f"System error:\n{str(e)}"
+            )
+
+            return msg
+
+    def install_elastix_bin(self) -> None:
         """
         Locate or download the Elastix binary bundled with the extension.
 
@@ -986,34 +1018,19 @@ class ElastixImpactWidget(AppTemplateWidget):
         Otherwise we run the Download.py helper using PythonSlicer, then
         retry registration once the download is complete.
         """
-        file = "elastix-impact-{}-shared-with-deps-{}".format(
-            "win64" if platform.system() == "Windows" else "linux", "cu126" if torch.cuda.is_available() else "cpu"
-        )
-        path = Path(os.path.dirname(os.path.abspath(__file__))) / "Resources" / "bin"
-        executable = "elastix.exe" if platform.system() == "Windows" else "elastix"
-        matches = list((path / file).rglob(executable))
-        if len(matches):
-            self._elastix_bin = matches[0]
-            file_path = Path(self._elastix_bin)
-            # Ensure execute permission on Unix-like systems
-            if platform.system() != "Windows":
-                if not os.access(file_path, os.X_OK):
-                    print(f"[INFO] Setting execute permission: {file_path}")
-                    file_path.chmod(file_path.stat().st_mode | 0o111)
-            self.registration()
-            return
 
         def on_en_function():
             if self.process.exitStatus() != QProcess.NormalExit:
                 self.set_running(False)
                 return
-            matches = list((path / file).rglob(executable))
-            if len(matches):
-                self._elastix_bin = matches[0]
-                self.registration()
+            if not self._elastix_bin.exists():
+                raise FileNotFoundError("Elastix binary not found. Installation failed.")
+
+            self.registration()
             self.set_running(False)
 
-        self.process.run(shutil.which("PythonSlicer"), path, ["Download.py"], on_en_function)
+        path = Path(os.path.dirname(os.path.abspath(__file__))) / "Resources" / "bin"
+        self.process.run(shutil.which("PythonSlicer"), path, ["install.py"], on_en_function)
 
     def next_registration(
         self,
@@ -1183,8 +1200,21 @@ class ElastixImpactWidget(AppTemplateWidget):
         If Elastix is not installed yet, trigger the download, otherwise
         build the Elastix command-line arguments and execute presets in sequence.
         """
-        if self._elastix_bin is None:
-            self.get_elastix_bin()
+        msg = self.try_elastix()
+
+        if msg:
+            reply = slicer.util.confirmYesNoDisplay(
+                msg + "\n\nDo you want to reinstall Elastix now?", windowTitle="IMPACT / Elastix error"
+            )
+
+            if reply:
+                shutil.rmtree(Path(resource_path("bin")) / "elastix-impact")
+            else:
+                self.set_running(False)
+                return
+
+        if not self._elastix_bin.exists():
+            self.install_elastix_bin()
             return
 
         args_init = [
