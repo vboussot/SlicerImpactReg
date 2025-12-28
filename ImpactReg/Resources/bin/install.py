@@ -165,7 +165,7 @@ def extract_archive(archive: Path, dst_dir: Path) -> None:
     archive.unlink()
 
 
-def main() -> int:
+def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--prefix", type=Path, default=DEFAULT_PREFIX, help="Install directory (default: ./elastix-impact)")
     group = ap.add_mutually_exclusive_group()

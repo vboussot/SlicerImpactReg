@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
+import platform
 
 import numpy as np
 import SimpleITK as sitk  # noqa: N813
@@ -296,7 +297,7 @@ class ElastixImpactWidget(AppTemplateWidget):
     def __init__(self, name: str, repo_id: str):
         super().__init__(name, slicer.util.loadUI(resource_path("UI/ElastixImpactReg.ui")))
         self.repo_id = repo_id
-        self._elastix_bin = Path(resource_path("bin")) / "elastix-impact" / "bin" / "elastix"
+        self._elastix_bin = Path(resource_path("bin")) / "elastix-impact" / ("elastix.exe" if platform.system() == "Windows" else "bin" / "elastix")
 
         # QA panels (with/without reference metrics)
         self.evaluation_panel = KonfAIMetricsPanel()
@@ -1018,7 +1019,6 @@ class ElastixImpactWidget(AppTemplateWidget):
         Otherwise we run the Download.py helper using PythonSlicer, then
         retry registration once the download is complete.
         """
-
         def on_en_function():
             if self.process.exitStatus() != QProcess.NormalExit:
                 self.set_running(False)
@@ -1027,7 +1027,6 @@ class ElastixImpactWidget(AppTemplateWidget):
                 raise FileNotFoundError("Elastix binary not found. Installation failed.")
 
             self.registration()
-            self.set_running(False)
 
         path = Path(os.path.dirname(os.path.abspath(__file__))) / "Resources" / "bin"
         self.process.run(shutil.which("PythonSlicer"), path, ["install.py"], on_en_function)
@@ -1200,6 +1199,10 @@ class ElastixImpactWidget(AppTemplateWidget):
         If Elastix is not installed yet, trigger the download, otherwise
         build the Elastix command-line arguments and execute presets in sequence.
         """
+        if not self._elastix_bin.exists():
+            self.install_elastix_bin()
+            return
+    
         msg = self.try_elastix()
 
         if msg:
@@ -1213,9 +1216,7 @@ class ElastixImpactWidget(AppTemplateWidget):
                 self.set_running(False)
                 return
 
-        if not self._elastix_bin.exists():
-            self.install_elastix_bin()
-            return
+
 
         args_init = [
             "-f",
