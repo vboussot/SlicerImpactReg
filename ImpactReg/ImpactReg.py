@@ -420,15 +420,18 @@ class ElastixImpactWidget(AppTemplateWidget):
             btn.maximumHeight = 24
 
             btn.styleSheet = """
-                QPushButton {
-                    border: 1px solid #888;
-                    border-radius: 10px;
-                    padding: 2px 6px;
-                    background-color: #e0e0e0;
-                }
-                QPushButton:hover {
-                    background-color: #d0d0d0;
-                }
+            QPushButton {
+                color: #0b3d91;
+                background-color: #edf3ff;
+                border: 1px solid #0b3d91;
+                border-radius: 12px;
+                padding: 3px 10px;
+                font-weight: 600;
+            }
+
+            QPushButton:hover {
+                background-color: #dce8ff;
+            }
             """
 
             def remove_chip():
