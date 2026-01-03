@@ -11,8 +11,16 @@ import numpy as np
 import SimpleITK as sitk  # noqa: N813
 import sitkUtils
 import slicer
-from KonfAI import AppTemplateWidget, KonfAICoreWidget, KonfAIMetricsPanel, Process, _is_reload_setup, install_konfai
-from qt import QDesktopServices, QIcon, QProcess, QPushButton, QSize, QUrl, QWidget
+from KonfAI import (
+    AppTemplateWidget,
+    ChipSelector,
+    KonfAICoreWidget,
+    KonfAIMetricsPanel,
+    Process,
+    _is_reload_setup,
+    install_konfai,
+)
+from qt import QDesktopServices, QIcon, QProcess, QSize, QUrl, QWidget
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import ScriptedLoadableModule, ScriptedLoadableModuleWidget
@@ -248,7 +256,7 @@ class Preset:
         """Return the number of Elastix iterations configured for this preset."""
         return self._iterations
 
-    def set_device(self, parametermap_path: str, device_str: str | None):
+    def set_device(self, parametermap_path: str, device_str: list[str]):
         """
         Update the ImpactGPU field of a parameter map with the selected device index.
 
@@ -257,7 +265,7 @@ class Preset:
         """
         device = -1
         if device_str:
-            device = int(device_str.split(",")[0])
+            device = int(device_str[0])
 
         lines = []
         with open(parametermap_path) as f:
@@ -360,6 +368,16 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.ui.presetButton.setIconSize(QSize(18, 18))
         self.ui.presetButton.clicked.connect(self.on_open_config)
 
+        self.ship_selector = ChipSelector(
+            self.ui.parameterMapPresetComboBox,
+            self.ui.selectedPresetsWidget.layout(),
+            on_change=self.on_preset_selected_change,
+        )
+        self.presets: dict[str, Preset] = {}
+
+    def on_preset_selected_change(self, preset_selected: list[str]):
+        self.update_gui_from_parameter_node()
+
     def on_tab_changed(self) -> None:
         """
         Update GUI state when the user switches between QA tabs.
@@ -367,96 +385,6 @@ class ElastixImpactWidget(AppTemplateWidget):
         Ensures that button enabling/disabling is consistent with the current tab.
         """
         self.update_gui_from_parameter_node()
-
-    def setup_preset_chips(self, presets: list[str]):
-        """
-        Setup the list of selected presets as removable 'chips' in the UI.
-
-        This gives a quick visual overview of which presets will be run
-        in sequence, and allows users to remove them with a single click.
-        """
-        combo = self.ui.parameterMapPresetComboBox
-        layout = self.ui.selectedPresetsWidget.layout()
-
-        def chip_exists(text):
-            for i in range(layout.count()):
-                item = layout.itemAt(i)
-                w = item.widget()
-                if isinstance(w, QPushButton) and w.text == text:
-                    return True
-            return False
-
-        def insert_before_spacer(widget):
-            """
-            Insert the chip before the layout's trailing spacer item so
-            that chips stay aligned to the left.
-            """
-            insert_index = layout.count()
-            for i in range(layout.count()):
-                if layout.itemAt(i).spacerItem() is not None:
-                    insert_index = i
-                    break
-            layout.insertWidget(insert_index, widget)
-
-        def add_chip(text):
-            """
-            Create and insert a new chip button for the given preset name.
-            """
-            if not text or chip_exists(text):
-                return
-
-            btn = QPushButton(text)
-            btn.flat = True
-            btn.toolTip = f"Click to remove preset '{text}'"
-            btn.minimumHeight = 20
-            btn.maximumHeight = 24
-
-            btn.styleSheet = """
-            QPushButton {
-                color: #0b3d91;
-                background-color: #edf3ff;
-                border: 1px solid #0b3d91;
-                border-radius: 12px;
-                padding: 3px 10px;
-                font-weight: 600;
-            }
-
-            QPushButton:hover {
-                background-color: #dce8ff;
-            }
-            """
-
-            def remove_chip():
-                layout.removeWidget(btn)
-                btn.deleteLater()
-                self.set_parameter("Presets", ",".join(self.get_selected_presets()))
-
-            btn.clicked.connect(remove_chip)
-
-            insert_before_spacer(btn)
-            self.set_parameter("Presets", ",".join(self.get_selected_presets()))
-
-        def on_preset_activated(index):
-            add_chip(combo.itemText(index))
-
-        combo.connect("activated(int)", on_preset_activated)
-
-        # Recreate chips from parameter node on initialization
-        for preset in presets:
-            add_chip(preset)
-
-    def get_selected_presets(self):
-        """
-        Retrieve the list of preset names currently represented as chips.
-        """
-        layout = self.ui.selectedPresetsWidget.layout()
-        presets = []
-        for i in range(layout.count()):
-            item = layout.itemAt(i)
-            w = item.widget()
-            if isinstance(w, QPushButton):
-                presets.append(w.text)
-        return presets
 
     def on_open_config(self):
         """
@@ -475,12 +403,12 @@ class ElastixImpactWidget(AppTemplateWidget):
         We collapse the description by default and disable QA tabs until a
         registration has been run with the new preset configuration.
         """
-        self.ui.removePresetButton.setEnabled(False)
-        self._description_expanded = False
-        self.on_toggle_description()
-        self.set_parameter("Preset", str(self.ui.parameterMapPresetComboBox.currentIndex))
+        if self.ui.parameterMapPresetComboBox.currentIndex:
+            self.ui.removePresetButton.setEnabled(False)
+            self._description_expanded = False
+            self.on_toggle_description()
 
-        self.ui.qaTabWidget.setTabEnabled(1, False)
+            self.ui.qaTabWidget.setTabEnabled(1, False)
 
     def on_toggle_description(self):
         """
@@ -525,9 +453,6 @@ class ElastixImpactWidget(AppTemplateWidget):
             if second_volume_node and self._parameter_node is not None:
                 self._parameter_node.SetNodeReferenceID(f"{self._name}/MovingVolume", second_volume_node.GetID())
 
-        if not self.get_parameter("Preset"):
-            self.set_parameter("Preset", "0")
-
         self.initialize_gui_from_parameter_node()
         self._initialized = True
 
@@ -558,10 +483,6 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.ui.referenceMaskSelector.setCurrentNode(self.get_parameter_node("MaskEvaluation"))
         self.ui.inputTransformSelector.setCurrentNode(self.get_parameter_node("TransformEvaluation"))
 
-        self.setup_preset_chips(self.get_parameter("Presets").split(","))
-
-        self.ui.parameterMapPresetComboBox.setCurrentIndex(int(self.get_parameter("Preset")))
-
     def enter(self):
         """
         Called when the user enters the app tab inside SlicerKonfAI.
@@ -584,7 +505,9 @@ class ElastixImpactWidget(AppTemplateWidget):
             # Populate the preset combo with Preset objects as userData
             for preset_metadata in preset_database["presets"]:
                 preset = Preset(self.repo_id, preset_metadata)
-                self.ui.parameterMapPresetComboBox.addItem(preset.get_display_name(), preset)
+                self.presets[preset.get_display_name()] = preset
+                self.ui.parameterMapPresetComboBox.addItem(preset.get_display_name())
+
             self.ui.parameterMapPresetComboBox.currentIndexChanged.connect(self.on_preset_selected)
 
         super().enter()
@@ -598,13 +521,12 @@ class ElastixImpactWidget(AppTemplateWidget):
         """
         fixed_volume = self.get_parameter_node("FixedVolume")
         moving_volume = self.get_parameter_node("MovingVolume")
-        presets = self.get_parameter("Presets")
         if (
             fixed_volume
             and fixed_volume.GetImageData()
             and moving_volume
             and moving_volume.GetImageData()
-            and len(presets)
+            and self.ship_selector.selected()
         ):
             self.ui.runRegistrationButton.toolTip = _("Start evaluation")
             self.ui.runRegistrationButton.enabled = True
@@ -1252,12 +1174,10 @@ class ElastixImpactWidget(AppTemplateWidget):
             args_init += ["-mMask", "MovingMask.mha"]
 
         # Collect selected presets in the order displayed in the combo box
-        selected_presets = self.get_selected_presets()
-        combo = self.ui.parameterMapPresetComboBox
+        selected_presets = self.ship_selector.selected()
         presets = []
-        for i in range(combo.count):
-            if combo.itemText(i) in selected_presets:
-                presets.append(combo.itemData(i))
+        for preset_name in selected_presets:
+            presets.append(self.presets[preset_name])
 
         # Compute total number of iterations for progress monitoring
         total_it = 0
