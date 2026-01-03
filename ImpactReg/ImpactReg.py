@@ -1,18 +1,17 @@
 import importlib.util
 import json
 import os
+import platform
 import re
 import shutil
 import subprocess
 from pathlib import Path
-import platform
 
 import numpy as np
 import SimpleITK as sitk  # noqa: N813
 import sitkUtils
 import slicer
-from huggingface_hub import hf_hub_download, list_repo_files
-from KonfAI import AppTemplateWidget, KonfAICoreWidget, KonfAIMetricsPanel, Process
+from KonfAI import AppTemplateWidget, KonfAICoreWidget, KonfAIMetricsPanel, Process, _is_reload_setup, install_konfai
 from qt import QDesktopServices, QIcon, QProcess, QPushButton, QSize, QUrl, QWidget
 from slicer.i18n import tr as _
 from slicer.i18n import translate
@@ -169,6 +168,8 @@ class Preset:
     """
 
     def __init__(self, repo_id: str, metadata: dict[str, str]) -> None:
+        from huggingface_hub import hf_hub_download, list_repo_files
+
         self._display_name = metadata["display_name"]
 
         # Download all parameter maps for this preset from HF
@@ -222,6 +223,8 @@ class Preset:
         models : list[str]
             Paths to TorchScript models to be copied next to the working directory.
         """
+        from huggingface_hub import hf_hub_download
+
         for model_name in self._models_names:
             self._models.append(
                 hf_hub_download(
@@ -297,7 +300,11 @@ class ElastixImpactWidget(AppTemplateWidget):
     def __init__(self, name: str, repo_id: str):
         super().__init__(name, slicer.util.loadUI(resource_path("UI/ElastixImpactReg.ui")))
         self.repo_id = repo_id
-        self._elastix_bin = Path(resource_path("bin")) / "elastix-impact" / ("elastix.exe" if platform.system() == "Windows" else "bin" / "elastix")
+        self._elastix_bin = (
+            Path(resource_path("bin"))
+            / "elastix-impact"
+            / ("elastix.exe" if platform.system() == "Windows" else (Path("bin") / "elastix"))
+        )
 
         # QA panels (with/without reference metrics)
         self.evaluation_panel = KonfAIMetricsPanel()
@@ -352,21 +359,6 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.ui.presetButton.setIcon(QIcon(icon_path))
         self.ui.presetButton.setIconSize(QSize(18, 18))
         self.ui.presetButton.clicked.connect(self.on_open_config)
-
-        # Load preset database from Hugging Face
-        preset_database_path = hf_hub_download(
-            repo_id=repo_id, filename="PresetDatabase.json", repo_type="model", revision=None
-        )  # nosec B615
-
-        with open(preset_database_path, encoding="utf-8") as f:
-            preset_database = json.load(f)
-
-        # Populate the preset combo with Preset objects as userData
-        for preset_metadata in preset_database["presets"]:
-            preset = Preset(repo_id, preset_metadata)
-            self.ui.parameterMapPresetComboBox.addItem(preset.get_display_name(), preset)
-
-        self.ui.parameterMapPresetComboBox.currentIndexChanged.connect(self.on_preset_selected)
 
     def on_tab_changed(self) -> None:
         """
@@ -576,6 +568,25 @@ class ElastixImpactWidget(AppTemplateWidget):
 
         We simply re-apply the current preset selection logic.
         """
+        if not install_konfai():
+            return
+        if self.ui.parameterMapPresetComboBox.count == 0:
+            from huggingface_hub import hf_hub_download
+
+            # Load preset database from Hugging Face
+            preset_database_path = hf_hub_download(
+                repo_id=self.repo_id, filename="PresetDatabase.json", repo_type="model", revision=None
+            )  # nosec B615
+
+            with open(preset_database_path, encoding="utf-8") as f:
+                preset_database = json.load(f)
+
+            # Populate the preset combo with Preset objects as userData
+            for preset_metadata in preset_database["presets"]:
+                preset = Preset(self.repo_id, preset_metadata)
+                self.ui.parameterMapPresetComboBox.addItem(preset.get_display_name(), preset)
+            self.ui.parameterMapPresetComboBox.currentIndexChanged.connect(self.on_preset_selected)
+
         super().enter()
         self.on_preset_selected()
 
@@ -1022,6 +1033,7 @@ class ElastixImpactWidget(AppTemplateWidget):
         Otherwise we run the Download.py helper using PythonSlicer, then
         retry registration once the download is complete.
         """
+
         def on_en_function():
             if self.process.exitStatus() != QProcess.NormalExit:
                 self.set_running(False)
@@ -1205,7 +1217,7 @@ class ElastixImpactWidget(AppTemplateWidget):
         if not self._elastix_bin.exists():
             self.install_elastix_bin()
             return
-    
+
         msg = self.try_elastix()
 
         if msg:
@@ -1218,8 +1230,6 @@ class ElastixImpactWidget(AppTemplateWidget):
             else:
                 self.set_running(False)
                 return
-
-
 
         args_init = [
             "-f",
@@ -1301,6 +1311,9 @@ class ImpactRegWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Attach the core widget to the Slicer module layout
         self.layout.addWidget(self.konfai_core)
 
+        if _is_reload_setup("SlicerImpactReg"):
+            self.konfai_core.enter()
+
     def cleanup(self) -> None:
         """
         Called when the application closes and the module widget is destroyed.
@@ -1315,7 +1328,7 @@ class ImpactRegWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         This hook can be used to ensure state is up-to-date when the user
         returns to the module. Currently no additional logic is required.
         """
-        pass
+        self.konfai_core.enter()
 
     def exit(self) -> None:  # noqa: A003
         """
@@ -1324,4 +1337,4 @@ class ImpactRegWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         This hook can be used to pause or finalize ongoing tasks, but
         no special handling is required at the moment.
         """
-        pass
+        self.konfai_core.exit()
