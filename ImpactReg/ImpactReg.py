@@ -371,9 +371,11 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.ship_selector = ChipSelector(
             self.ui.parameterMapPresetComboBox,
             self.ui.selectedPresetsWidget.layout(),
+            combo_remove=False,
             on_change=self.on_preset_selected_change,
         )
         self.presets: dict[str, Preset] = {}
+        self._current_preset = None
 
     def on_preset_selected_change(self, preset_selected: list[str]):
         self.update_gui_from_parameter_node()
@@ -393,7 +395,8 @@ class ElastixImpactWidget(AppTemplateWidget):
         This allows advanced users to inspect or edit the Elastix parameter
         maps and associated configuration files.
         """
-        preset_dir = self.ui.parameterMapPresetComboBox.currentData.get_preset_dir()
+
+        preset_dir = self.presets[self.ui.parameterMapPresetComboBox.currentText].get_preset_dir()
         QDesktopServices.openUrl(QUrl.fromLocalFile(preset_dir.parent))
 
     def on_preset_selected(self):
@@ -414,7 +417,8 @@ class ElastixImpactWidget(AppTemplateWidget):
         """
         Toggle between short and full description of the current preset.
         """
-        preset: Preset = self.ui.parameterMapPresetComboBox.currentData
+        preset = self.presets[self.ui.parameterMapPresetComboBox.currentText]
+
         if self._description_expanded:
             self.ui.presetDescriptionLabel.setText(preset.get_description())
             self.ui.toggleDescriptionButton.setText("Less ▲")
