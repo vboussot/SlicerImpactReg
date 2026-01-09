@@ -1,3 +1,5 @@
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/vboussot/KonfAI/blob/main/LICENSE)
+[![Paper](https://img.shields.io/badge/📌%20Paper-KonfAI-blue)](https://arxiv.org/abs/2503.24121)
 
 # 🔄 Slicer IMPACT-Reg
 
@@ -99,6 +101,7 @@ Each preset includes:
 2. **Boussot, V. & Dillenseger, J-L.**  
    *KonfAI: A Modular and Fully Configurable Framework for Deep Learning in Medical Imaging.*  
    arXiv:2508.09823 — 2025  
+
 
 
 
