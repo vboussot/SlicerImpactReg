@@ -354,6 +354,7 @@ class ElastixImpactWidget(AppTemplateWidget):
 
         self.ui.referenceMaskSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_gui)
         self.ui.inputTransformSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_gui)
+        self.ui.referenceVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.update_parameter_node_from_gui)
 
         # Buttons and tabs
         self.ui.toggleDescriptionButton.clicked.connect(self.on_toggle_description)
@@ -487,6 +488,8 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.ui.referenceMaskSelector.setCurrentNode(self.get_parameter_node("MaskEvaluation"))
         self.ui.inputTransformSelector.setCurrentNode(self.get_parameter_node("TransformEvaluation"))
 
+        self.ui.referenceVolumeSelector.setCurrentNode(self.get_parameter_node("ReferenceVolume"))
+
     def enter(self):
         """
         Called when the user enters the app tab inside SlicerKonfAI.
@@ -556,7 +559,7 @@ class ElastixImpactWidget(AppTemplateWidget):
 
         transform_evaluation = self.get_parameter_node("TransformEvaluation")
         transform_sequence = self.get_parameter_node("TransformSequence")
-
+        reference_volume = self.get_parameter_node("ReferenceVolume")
         # Enable/disable the evaluation button depending on QA mode
         if self.ui.qaTabWidget.currentWidget().name == "withRefTab":
             if (
@@ -585,7 +588,13 @@ class ElastixImpactWidget(AppTemplateWidget):
                 self.ui.runEvaluationButton.toolTip = _("Select fixed and moving and transform")
                 self.ui.runEvaluationButton.enabled = False
         else:
-            if transform_sequence and transform_sequence.GetNumberOfDataNodes() > 1:
+
+            if (
+                transform_sequence
+                and transform_sequence.GetNumberOfDataNodes() > 1
+                and reference_volume
+                and reference_volume.GetImageData()
+            ):
                 self.ui.runEvaluationButton.toolTip = _("Start uncertainty estimation")
                 self.ui.runEvaluationButton.enabled = True
             else:
@@ -627,7 +636,7 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.set_parameter_node("TransformEvaluation", self.ui.inputTransformSelector.currentNodeID)
 
         self.set_parameter_node("TransformSequence", self.ui.inputTransformSequenceSelector.currentNodeID)
-
+        self.set_parameter_node("ReferenceVolume", self.ui.referenceVolumeSelector.currentNodeID)
         self._parameter_node.EndModify(was_modified)
 
     def on_run_evaluation_button(self):
@@ -875,7 +884,7 @@ class ElastixImpactWidget(AppTemplateWidget):
         transform_path_tmp.mkdir(parents=True, exist_ok=True)
         transform_to_displacementfield_filter = sitk.TransformToDisplacementFieldFilter()
         images = []
-        reference_image = sitkUtils.PullVolumeFromSlicer(self.ui.fixedVolumeSelector.currentNode())
+        reference_image = sitkUtils.PullVolumeFromSlicer(self.ui.referenceVolumeSelector.currentNode())
         for i in range(transform_sequence_node.GetNumberOfDataNodes()):
             tnode = transform_sequence_node.GetNthDataNode(i)
             slicer.util.saveNode(tnode, str(self._work_dir / f"t_{i:05d}.h5"))
@@ -887,7 +896,6 @@ class ElastixImpactWidget(AppTemplateWidget):
         arrays = [sitk.GetArrayFromImage(img) for img in images]
         stack = np.stack(arrays, axis=-1)
         image = sitk.GetImageFromArray(stack, isVector=True)
-
         sitk.WriteImage(image, str(self._work_dir / "DVFs.mha"))
 
         args = [
