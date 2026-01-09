@@ -411,7 +411,7 @@ class ElastixImpactWidget(AppTemplateWidget):
             self._description_expanded = False
             self.on_toggle_description()
 
-            self.ui.qaTabWidget.setTabEnabled(1, False)
+            # self.ui.qaTabWidget.setTabEnabled(1, False)
 
     def on_toggle_description(self):
         """
@@ -652,7 +652,7 @@ class ElastixImpactWidget(AppTemplateWidget):
         """
         args = args_list.pop(0)
         if self.get_device():
-            args += ["--gpu", self.get_device()]
+            args += ["--gpu"] + self.get_device()
         else:
             args += ["--cpu", "1"]
 
@@ -868,33 +868,39 @@ class ElastixImpactWidget(AppTemplateWidget):
         Not implemented yet; kept as a stub for future development.
         """
 
-        """self.uncertainty_panel.clear_metrics()
+        self.uncertainty_panel.clear_metrics()
         transform_sequence_node = self.ui.inputTransformSequenceSelector.currentNode()
-
-        composite = sitk.CompositeTransform(3)
 
         transform_path_tmp = self._work_dir / "Transforms"
         transform_path_tmp.mkdir(parents=True, exist_ok=True)
-
+        transform_to_displacementfield_filter = sitk.TransformToDisplacementFieldFilter()
+        images = []
+        reference_image = sitkUtils.PullVolumeFromSlicer(self.ui.fixedVolumeSelector.currentNode())
         for i in range(transform_sequence_node.GetNumberOfDataNodes()):
             tnode = transform_sequence_node.GetNthDataNode(i)
-            sitk_transform = sitkUtils.PullTransformFromSlicer(tnode)
-            # composite.AddTransform(sitk.ReadTransform(str(transform_filename_tmp)))
+            slicer.util.saveNode(tnode, str(self._work_dir / f"t_{i:05d}.h5"))
+            t = sitk.ReadTransform(str(self._work_dir / f"t_{i:05d}.h5"))
+            os.remove(str(self._work_dir / f"t_{i:05d}.h5"))
+            transform_to_displacementfield_filter.SetReferenceImage(reference_image)
+            images.append(transform_to_displacementfield_filter.Execute(t))
 
-        # sitk.WriteTransform(composite, str(self._work_dir / "Transform.itk.txt"))
+        arrays = [sitk.GetArrayFromImage(img) for img in images]
+        stack = np.stack(arrays, axis=-1)
+        image = sitk.GetImageFromArray(stack, isVector=True)
 
+        sitk.WriteImage(image, str(self._work_dir / "DVFs.mha"))
 
         args = [
             "uncertainty",
             f"{self.repo_id}:ImpactReg",
             "-i",
-            "Volume.mha",
+            "DVFs.mha",
             "-o",
             "Uncertainty",
         ]
 
         if self.get_device():
-            args += ["--gpu", self.get_device()]
+            args += ["--gpu"] + self.get_device()
         else:
             args += ["--cpu", "1"]
 
@@ -904,6 +910,7 @@ class ElastixImpactWidget(AppTemplateWidget):
                 return
             try:
                 from konfai.evaluator import Statistics
+
                 statistics = Statistics((self._work_dir / "Uncertainty").rglob("*.json").__next__())
                 self.uncertainty_panel.set_metrics(statistics.read())
                 self.uncertainty_panel.refresh_images_list(
@@ -913,8 +920,7 @@ class ElastixImpactWidget(AppTemplateWidget):
             finally:
                 self.set_running(False)
 
-        self.process.run("konfai-apps", self._work_dir, args, on_end_function)"""
-        pass
+        self.process.run("konfai-apps", self._work_dir, args, on_end_function)
 
     def on_run_registration_button(self):
         """Entry point for the 'Run' button: start or stop registration."""
@@ -1142,7 +1148,6 @@ class ElastixImpactWidget(AppTemplateWidget):
         """
         if not self._elastix_bin.exists():
             self.install_elastix_bin()
-            return
 
         msg = self.try_elastix()
 
@@ -1153,6 +1158,7 @@ class ElastixImpactWidget(AppTemplateWidget):
 
             if reply:
                 shutil.rmtree(Path(resource_path("bin")) / "elastix-impact")
+                self.install_elastix_bin()
             else:
                 self.set_running(False)
                 return

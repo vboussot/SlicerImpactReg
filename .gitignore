@@ -2,5 +2,6 @@ build
 Preset
 .mypy_cache
 __pycache__
-ImpactReg/Resources/bin/elastix-*
-Test
+ImpactReg/Resources/bin/elastix-impact
+ImpactReg/Resources/bin/ImpactReg
+.vscode
