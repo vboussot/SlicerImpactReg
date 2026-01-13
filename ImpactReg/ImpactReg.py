@@ -1157,8 +1157,6 @@ class ElastixImpactWidget(AppTemplateWidget):
         If Elastix is not installed yet, trigger the download, otherwise
         build the Elastix command-line arguments and execute presets in sequence.
         """
-        if not self._elastix_bin.exists():
-            self.install_elastix_bin(remote_server, devices)
 
         msg = self.try_elastix()
 
