@@ -17,6 +17,7 @@ from KonfAI import (
     KonfAICoreWidget,
     KonfAIMetricsPanel,
     Process,
+    RemoteServer,
     _is_reload_setup,
     install_konfai,
 )
@@ -24,7 +25,6 @@ from qt import QDesktopServices, QIcon, QProcess, QSize, QUrl, QWidget
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import ScriptedLoadableModule, ScriptedLoadableModuleWidget
-from slicer.util import VTKObservationMixin
 
 
 class ElastixProcess(Process):
@@ -378,6 +378,9 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.presets: dict[str, Preset] = {}
         self._current_preset = None
 
+    def on_remote_server_changed(self) -> None:
+        pass
+
     def on_preset_selected_change(self, preset_selected: list[str]):
         self.update_gui_from_parameter_node()
 
@@ -688,7 +691,7 @@ class ElastixImpactWidget(AppTemplateWidget):
 
         self.process.run("konfai-apps", self._work_dir, args, on_end_evaluation)
 
-    def evaluation(self):
+    def evaluation(self, remote_server: RemoteServer | None, devices: list[str]):
         """
         Build and run evaluation workflows based on the selected reference data.
 
@@ -866,7 +869,7 @@ class ElastixImpactWidget(AppTemplateWidget):
                 args += ["--mask", "Mask.mha"]
         self.next_evaluation(args_list)
 
-    def uncertainty(self):
+    def uncertainty(self, remote_server: RemoteServer | None, devices: list[str]):
         """
         Placeholder for future uncertainty estimation based on transform ensembles.
 
@@ -965,7 +968,7 @@ class ElastixImpactWidget(AppTemplateWidget):
 
             return msg
 
-    def install_elastix_bin(self) -> None:
+    def install_elastix_bin(self, remote_server: RemoteServer | None, devices: list[str]) -> None:
         """
         Locate or download the Elastix binary bundled with the extension.
 
@@ -981,7 +984,7 @@ class ElastixImpactWidget(AppTemplateWidget):
             if not self._elastix_bin.exists():
                 raise FileNotFoundError("Elastix binary not found. Installation failed.")
 
-            self.registration()
+            self.registration(remote_server, devices)
 
         path = Path(os.path.dirname(os.path.abspath(__file__))) / "Resources" / "bin"
         self.process.run(shutil.which("PythonSlicer"), path, ["install.py"], on_en_function)
@@ -1147,7 +1150,7 @@ class ElastixImpactWidget(AppTemplateWidget):
 
         self.set_running(False)
 
-    def registration(self) -> None:
+    def registration(self, remote_server: RemoteServer | None, devices: list[str]) -> None:
         """
         Top-level registration entry point.
 
@@ -1155,7 +1158,7 @@ class ElastixImpactWidget(AppTemplateWidget):
         build the Elastix command-line arguments and execute presets in sequence.
         """
         if not self._elastix_bin.exists():
-            self.install_elastix_bin()
+            self.install_elastix_bin(remote_server, devices)
 
         msg = self.try_elastix()
 
@@ -1166,7 +1169,7 @@ class ElastixImpactWidget(AppTemplateWidget):
 
             if reply:
                 shutil.rmtree(Path(resource_path("bin")) / "elastix-impact")
-                self.install_elastix_bin()
+                self.install_elastix_bin(remote_server, devices)
             else:
                 self.set_running(False)
                 return
@@ -1217,7 +1220,7 @@ class ElastixImpactWidget(AppTemplateWidget):
         )
 
 
-class ImpactRegWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
+class ImpactRegWidget(ScriptedLoadableModuleWidget):
     """
     Top-level scripted loadable module widget for SlicerImpactReg.
 
@@ -1230,7 +1233,6 @@ class ImpactRegWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Called when the user opens the module the first time and the widget is initialized.
         """
         super().__init__(parent)
-        VTKObservationMixin.__init__(self)  # needed for parameter node observation
 
     def setup(self) -> None:
         """
@@ -1256,7 +1258,6 @@ class ImpactRegWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         Called when the application closes and the module widget is destroyed.
         """
-        self.removeObservers()
         self.konfai_core.cleanup()
 
     def enter(self) -> None:
