@@ -1166,7 +1166,8 @@ class ElastixImpactWidget(AppTemplateWidget):
             )
 
             if reply:
-                shutil.rmtree(Path(resource_path("bin")) / "elastix-impact")
+                if not (Path(resource_path("bin")) / "elastix-impact").exists():
+                    shutil.rmtree(Path(resource_path("bin")) / "elastix-impact")
                 self.install_elastix_bin(remote_server, devices)
             else:
                 self.set_running(False)
