@@ -986,7 +986,10 @@ class ElastixImpactWidget(AppTemplateWidget):
 
             self.registration(remote_server, devices)
 
-        path = Path(os.path.dirname(os.path.abspath(__file__))) / "Resources" / "bin"
+        path = Path(resource_path("bin"))
+
+        if (path / "elastix-impact").exists():
+            shutil.rmtree(path / "elastix-impact")
         self.process.run(shutil.which("PythonSlicer"), path, ["install.py"], on_en_function)
 
     def next_registration(
@@ -1158,6 +1161,20 @@ class ElastixImpactWidget(AppTemplateWidget):
         build the Elastix command-line arguments and execute presets in sequence.
         """
 
+        if not self._elastix_bin.exists():
+            reply = slicer.util.confirmYesNoDisplay(
+                "IMPACT Reg requires Elastix with the IMPACT module.\n\n"
+                "Elastix is not currently installed on your system.\n\n"
+                "Would you like to install it now?",
+                windowTitle="IMPACT – Elastix Installation",
+            )
+
+            if reply:
+                self.install_elastix_bin(remote_server, devices)
+            else:
+                self.set_running(False)
+            return
+
         msg = self.try_elastix()
 
         if msg:
@@ -1169,6 +1186,7 @@ class ElastixImpactWidget(AppTemplateWidget):
                 if not (Path(resource_path("bin")) / "elastix-impact").exists():
                     shutil.rmtree(Path(resource_path("bin")) / "elastix-impact")
                 self.install_elastix_bin(remote_server, devices)
+                return
             else:
                 self.set_running(False)
                 return
