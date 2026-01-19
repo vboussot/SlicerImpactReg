@@ -1,10 +1,10 @@
-import importlib.util
 import json
 import os
 import platform
 import re
 import shutil
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -19,9 +19,8 @@ from KonfAI import (
     Process,
     RemoteServer,
     _is_reload_setup,
-    install_konfai,
 )
-from qt import QDesktopServices, QIcon, QProcess, QSize, QUrl, QWidget
+from qt import QDesktopServices, QIcon, QSize, QUrl, QWidget
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import ScriptedLoadableModule, ScriptedLoadableModuleWidget
@@ -36,8 +35,13 @@ class ElastixProcess(Process):
       - estimate registration progress from iteration count and timing
     """
 
-    def __init__(self, _update_logs, _update_progress):
-        super().__init__(_update_logs, _update_progress)
+    def __init__(
+        self,
+        update_logs: Callable[[str, bool], None],
+        update_progress: Callable[[int, float], None],
+        running_setter: Callable[[bool], None],
+    ):
+        super().__init__(update_logs, update_progress, running_setter)
         # Total number of iterations across all presets (set externally)
         self._total_iterations = 0
 
@@ -53,6 +57,13 @@ class ElastixProcess(Process):
         if line:
             line = line.replace("\r\n", "\n").split("\r")[-1]
             self._update_logs(line)
+
+            m = re.search(r"(\d{1,3})%", line)
+            if m:
+                pct = int(m.group(1))
+                self._update_progress(pct, "")
+                return
+
             is_it = False
             for sub_line in line.split("\n"):
                 if re.match(r"^\d+", sub_line):
@@ -171,86 +182,60 @@ class Preset:
     A preset bundles:
       - Elastix parameter maps
       - one or several TorchScript models for IMPACT features
-      - a preprocess function (Python code downloaded from HF)
       - metadata (iterations, description)
     """
 
-    def __init__(self, repo_id: str, metadata: dict[str, str]) -> None:
-        from huggingface_hub import hf_hub_download, list_repo_files
-
+    def __init__(self, repo_id: str, metadata: dict[str, str], force_update: bool = False) -> None:
         self._display_name = metadata["display_name"]
 
         # Download all parameter maps for this preset from HF
-        self._parameter_maps = []
+        self._parameter_maps: list[Path] = []
+
         for parameter_map in metadata["parameter_maps"]:
-            self._parameter_maps.append(
-                hf_hub_download(repo_id=repo_id, filename=parameter_map, repo_type="model", revision=None)
-            )  # nosec B615
+            self._parameter_maps.append(self._download(repo_id, parameter_map, force_update))
 
         # Lazy-install TorchScript models on first use
         self._models_names = metadata["models"]
-        self._models: list[str] = []
-
-        # Optional Python preprocess function referenced as "<file>:<function>"
-        preprocess_function_filename = metadata["preprocess_function"].split(":")[0] + ".py"
-        if preprocess_function_filename in list_repo_files(repo_id, repo_type="model"):
-            preprocess_function_path = hf_hub_download(
-                repo_id=repo_id,
-                filename=preprocess_function_filename,
-                repo_type="model",
-                revision=None,
-                force_download=False,
-            )  # nosec B615
-
-            spec = importlib.util.spec_from_file_location("tmp_module", preprocess_function_path)
-            if spec is None or spec.loader is None:
-                raise ImportError(f"Cannot load preprocess function from {preprocess_function_path}")
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            self._preprocess_function = getattr(module, metadata["preprocess_function"].split(":")[1])
-        else:
-            # Identity preprocess if no function is provided
-            self._preprocess_function = lambda x: x
 
         self._iterations = int(metadata["iterations"])
         self._short_description = metadata["short_description"]
         self._description = metadata["description"]
 
+    def get_parameter_maps(self) -> list[Path]:
+        return self._parameter_maps
+
+    def _download(self, repo_id: str, filename: str, force_update: bool) -> Path:
+        from huggingface_hub import hf_hub_download
+
+        if force_update:
+            try:
+                return hf_hub_download(
+                    repo_id=repo_id, filename=filename, repo_type="model", revision=None
+                )  # nosec B615
+            except Exception as e1:
+                raise NameError(
+                    f"Unable to load parameter map '{filename}' from Hugging Face "
+                    f"repository '{repo_id}'. The file was not found in the local cache and "
+                    "could not be downloaded from the Hub.\n"
+                    "Please check that the repository exists, that it contains this file, "
+                    "and that you have network access.\n"
+                    f"Original error: {e1}"
+                )
+        else:
+            try:
+                return hf_hub_download(
+                    repo_id=repo_id, filename=filename, repo_type="model", revision=None, local_files_only=True
+                )  # nosec B615
+            except Exception:
+                return self._download(repo_id, filename, True)
+
     def get_display_name(self):
         """Human-readable name used in the preset combo box."""
         return self._display_name
 
-    def install(self) -> tuple[list[str], list[str]]:
-        """
-        Ensure all TorchScript models associated with this preset are present locally.
-
-        Returns
-        -------
-        parameter_maps : list[str]
-            Paths to Elastix parameter map files.
-        models : list[str]
-            Paths to TorchScript models to be copied next to the working directory.
-        """
-        from huggingface_hub import hf_hub_download
-
-        for model_name in self._models_names:
-            self._models.append(
-                hf_hub_download(
-                    repo_id=model_name.split(":")[0],
-                    filename=model_name.split(":")[1],
-                    repo_type="model",
-                    revision=None,
-                )
-            )  # nosec B615
-        return self._parameter_maps, self._models
-
-    def preprocess(self, image: sitk.Image) -> sitk.Image:
-        """Apply the preset's preprocess function to a SimpleITK image."""
-        return self._preprocess_function(image)
-
     def get_models_name(self):
         """Return model filenames (without repo prefix) for linking in the work directory."""
-        return [model_name.split(":")[1] for model_name in self._models_names]
+        return self._models_names
 
     def get_number_of_iterations(self) -> int:
         """Return the number of Elastix iterations configured for this preset."""
@@ -364,12 +349,21 @@ class ElastixImpactWidget(AppTemplateWidget):
         self.ui.qaTabWidget.currentChanged.connect(self.on_tab_changed)
 
         # Preset configuration button (wheel icon)
-        icon_path = resource_konfai_path("Icons/gear.png")
-        self.ui.presetButton.setIcon(QIcon(icon_path))
+        self.ui.presetButton.setIcon(QIcon(resource_konfai_path("Icons/gear.png")))
         self.ui.presetButton.setIconSize(QSize(18, 18))
         self.ui.presetButton.clicked.connect(self.on_open_config)
 
-        self.ship_selector = ChipSelector(
+        self.ui.refreshPresetsListButton.setIcon(QIcon(resource_konfai_path("Icons/refresh.png")))
+        self.ui.refreshPresetsListButton.setIconSize(QSize(18, 18))
+        self.ui.refreshPresetsListButton.clicked.connect(self.on_refresh_presets)
+
+        self.ui.addPresetButton.setEnabled(False)
+        self.ui.removePresetButton.setEnabled(False)
+
+        self.ui.removePresetButton.clicked.connect(self.on_remove_preset)
+        self.ui.addPresetButton.clicked.connect(self.on_add_preset)
+
+        self.chip_selector = ChipSelector(
             self.ui.parameterMapPresetComboBox,
             self.ui.selectedPresetsWidget.layout(),
             combo_remove=False,
@@ -377,6 +371,57 @@ class ElastixImpactWidget(AppTemplateWidget):
         )
         self.presets: dict[str, Preset] = {}
         self._current_preset = None
+
+    def on_remove_preset(self) -> None:
+        pass
+
+    def on_add_preset(self) -> None:
+        pass
+
+    def on_refresh_presets(self) -> None:
+        self.populate_presets(True)
+
+    def populate_presets(self, force_update: bool = False) -> None:
+        from huggingface_hub import hf_hub_download
+
+        if force_update:
+            try:
+                # Load preset database from Hugging Face
+                preset_database_path = hf_hub_download(
+                    repo_id=self.repo_id, filename="PresetDatabase.json", repo_type="model", revision=None
+                )  # nosec B615
+            except Exception as e1:
+                slicer.util.errorDisplay(
+                    f"Unable to load 'PresetDatabase.json' from Hugging Face repository "
+                    f"'{self.repo_id}'. The file was not found in the local cache and could "
+                    "not be downloaded from the Hub.\n"
+                    "Please check that the repository exists, that it contains a "
+                    "'PresetDatabase.json' file, and that you have network access.\n",
+                    detailedText=getattr(e1, "details", None) or str(e1),
+                )
+                return
+        else:
+            try:
+                preset_database_path = hf_hub_download(
+                    repo_id=self.repo_id,
+                    filename="PresetDatabase.json",
+                    repo_type="model",
+                    revision=None,
+                    local_files_only=True,
+                )  # nosec B615
+            except Exception:
+                self.populate_presets(True)
+                return
+
+        with open(preset_database_path, encoding="utf-8") as f:
+            preset_database = json.load(f)
+
+        # Populate the preset combo with Preset objects as userData
+        self.ui.parameterMapPresetComboBox.clear()
+        for preset_metadata in preset_database["presets"]:
+            preset = Preset(self.repo_id, preset_metadata, force_update)
+            self.presets[preset.get_display_name()] = preset
+            self.ui.parameterMapPresetComboBox.addItem(preset.get_display_name())
 
     def on_remote_server_changed(self) -> None:
         pass
@@ -410,12 +455,8 @@ class ElastixImpactWidget(AppTemplateWidget):
         We collapse the description by default and disable QA tabs until a
         registration has been run with the new preset configuration.
         """
-        if self.ui.parameterMapPresetComboBox.currentIndex:
-            self.ui.removePresetButton.setEnabled(False)
-            self._description_expanded = False
-            self.on_toggle_description()
-
-            # self.ui.qaTabWidget.setTabEnabled(1, False)
+        self._description_expanded = False
+        self.on_toggle_description()
 
     def on_toggle_description(self):
         """
@@ -440,7 +481,7 @@ class ElastixImpactWidget(AppTemplateWidget):
         self._update_logs = update_logs
         self._update_progress = update_progress
         self._parameter_node = parameter_node
-        self.process = ElastixProcess(update_logs, update_progress)
+        self.process = ElastixProcess(update_logs, update_progress, self.set_running)
 
     def initialize_parameter_node(self):
         """
@@ -499,25 +540,9 @@ class ElastixImpactWidget(AppTemplateWidget):
 
         We simply re-apply the current preset selection logic.
         """
-        if not install_konfai():
-            return
+
         if self.ui.parameterMapPresetComboBox.count == 0:
-            from huggingface_hub import hf_hub_download
-
-            # Load preset database from Hugging Face
-            preset_database_path = hf_hub_download(
-                repo_id=self.repo_id, filename="PresetDatabase.json", repo_type="model", revision=None
-            )  # nosec B615
-
-            with open(preset_database_path, encoding="utf-8") as f:
-                preset_database = json.load(f)
-
-            # Populate the preset combo with Preset objects as userData
-            for preset_metadata in preset_database["presets"]:
-                preset = Preset(self.repo_id, preset_metadata)
-                self.presets[preset.get_display_name()] = preset
-                self.ui.parameterMapPresetComboBox.addItem(preset.get_display_name())
-
+            self.populate_presets()
             self.ui.parameterMapPresetComboBox.currentIndexChanged.connect(self.on_preset_selected)
 
         super().enter()
@@ -536,7 +561,7 @@ class ElastixImpactWidget(AppTemplateWidget):
             and fixed_volume.GetImageData()
             and moving_volume
             and moving_volume.GetImageData()
-            and self.ship_selector.selected()
+            and self.chip_selector.selected()
         ):
             self.ui.runRegistrationButton.toolTip = _("Start evaluation")
             self.ui.runRegistrationButton.enabled = True
@@ -669,9 +694,6 @@ class ElastixImpactWidget(AppTemplateWidget):
             args += ["--cpu", "1"]
 
         def on_end_evaluation(args: list[list[str]]) -> None:
-            if self.process.exitStatus() != QProcess.NormalExit:
-                self.set_running(False)
-                return
             try:
                 from konfai.evaluator import Statistics
 
@@ -681,13 +703,10 @@ class ElastixImpactWidget(AppTemplateWidget):
                     Path((self._work_dir / "Evaluation").rglob("*.mha").__next__().parent)
                 )
                 self._update_logs("Processing finished.")
-                if len(args_list) == 0:
-                    self.set_running(False)
-                else:
+                if len(args_list) > 0:
                     self.next_evaluation(args_list)
             except Exception as e:
                 print(e)
-                self.set_running(False)
 
         self.process.run("konfai-apps", self._work_dir, args, on_end_evaluation)
 
@@ -916,20 +935,14 @@ class ElastixImpactWidget(AppTemplateWidget):
             args += ["--cpu", "1"]
 
         def on_end_function() -> None:
-            if self.process.exitStatus() != QProcess.NormalExit:
-                self.set_running(False)
-                return
-            try:
-                from konfai.evaluator import Statistics
+            from konfai.evaluator import Statistics
 
-                statistics = Statistics((self._work_dir / "Uncertainty").rglob("*.json").__next__())
-                self.uncertainty_panel.set_metrics(statistics.read())
-                self.uncertainty_panel.refresh_images_list(
-                    Path((self._work_dir / "Uncertainty").rglob("*.mha").__next__().parent)
-                )
-                self._update_logs("Processing finished.")
-            finally:
-                self.set_running(False)
+            statistics = Statistics((self._work_dir / "Uncertainty").rglob("*.json").__next__())
+            self.uncertainty_panel.set_metrics(statistics.read())
+            self.uncertainty_panel.refresh_images_list(
+                Path((self._work_dir / "Uncertainty").rglob("*.mha").__next__().parent)
+            )
+            self._update_logs("Processing finished.")
 
         self.process.run("konfai-apps", self._work_dir, args, on_end_function)
 
@@ -978,9 +991,6 @@ class ElastixImpactWidget(AppTemplateWidget):
         """
 
         def on_en_function():
-            if self.process.exitStatus() != QProcess.NormalExit:
-                self.set_running(False)
-                return
             if not self._elastix_bin.exists():
                 raise FileNotFoundError("Elastix binary not found. Installation failed.")
 
@@ -1004,25 +1014,55 @@ class ElastixImpactWidget(AppTemplateWidget):
         Run Elastix sequentially for a list of presets.
 
         Each preset:
-          - preprocesses fixed/moving images
           - installs required TorchScript models
           - appends its parameter maps to the Elastix command
 
         The resulting transform is stored and used to build a sequence for
         uncertainty / composite-transform analysis.
         """
-        args = args_init.copy()
         preset = presets.pop(0)
+        args = args_init.copy()
 
+        parameter_maps_path = preset.get_parameter_maps()
+
+        models_path = []
+        from huggingface_hub import hf_hub_download
+
+        for model_name in preset.get_models_name():
+            try:
+                models_path.append(
+                    hf_hub_download(
+                        repo_id=model_name.split(":")[0],
+                        filename=model_name.split(":")[1],
+                        repo_type="model",
+                        revision=None,
+                        local_files_only=True,
+                    )
+                )  # nosec B615
+            except Exception:
+                try:
+                    models_path.append(
+                        hf_hub_download(
+                            repo_id=model_name.split(":")[0],
+                            filename=model_name.split(":")[1],
+                            repo_type="model",
+                            revision=None,
+                        )
+                    )  # nosec B615
+                except Exception as e:
+                    slicer.util.errorDisplay(
+                        f"Unable to load '{model_name.split(":")[1]}' from Hugging Face repository "
+                        f"'{model_name.split(":")[0]}'. The file was not found in the local cache and could "
+                        "not be downloaded from the Hub.\n"
+                        "Please check that the repository exists and that you have network access.\n",
+                        detailedText=getattr(e, "details", None) or str(e),
+                    )
+
+        sitk.WriteImage(sitkUtils.PullVolumeFromSlicer(fixed_image_node), str(self._work_dir / "FixedImage.mha"))
         sitk.WriteImage(
-            preset.preprocess(sitkUtils.PullVolumeFromSlicer(fixed_image_node)), str(self._work_dir / "FixedImage.mha")
-        )
-        sitk.WriteImage(
-            preset.preprocess(sitkUtils.PullVolumeFromSlicer(moving_image_node)),
+            sitkUtils.PullVolumeFromSlicer(moving_image_node),
             str(self._work_dir / "MovingImage.mha"),
         )
-
-        parameter_maps_path, models_path = preset.install()
 
         # Clean working directory (except MHA inputs)
         for f in self._work_dir.iterdir():
@@ -1032,7 +1072,7 @@ class ElastixImpactWidget(AppTemplateWidget):
                 else:
                     shutil.rmtree(f)
         # Copy models next to the work directory using the filenames expected by IMPACT
-        for model_path, model_name in zip(models_path, preset.get_models_name()):
+        for model_path, model_name in zip(models_path, [name.split(":")[1] for name in preset.get_models_name()]):
             link_path = self._work_dir / model_name
             if not link_path.exists():
                 link_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1046,9 +1086,6 @@ class ElastixImpactWidget(AppTemplateWidget):
             args += ["-p", copy_of_parameter_map_path]
 
         def on_end_elastix() -> None:
-            if self.process.exitStatus() != QProcess.NormalExit:
-                self.set_running(False)
-                return
             try:
                 files = list(self._work_dir.glob("TransformParameters.*-Composite.itk.txt"))
 
@@ -1079,7 +1116,6 @@ class ElastixImpactWidget(AppTemplateWidget):
                     self.on_end_function(fixed_image_node, moving_image_node, transforms)
             except Exception as e:
                 print(e)
-                self.set_running(False)
 
         self.process.run(self._elastix_bin, self._work_dir, args, on_end_elastix)
 
@@ -1151,8 +1187,6 @@ class ElastixImpactWidget(AppTemplateWidget):
 
         slicer.util.setSliceViewerLayers(background=fixed_image_node, foreground=warped_volume_node)
 
-        self.set_running(False)
-
     def registration(self, remote_server: RemoteServer | None, devices: list[str]) -> None:
         """
         Top-level registration entry point.
@@ -1171,8 +1205,6 @@ class ElastixImpactWidget(AppTemplateWidget):
 
             if reply:
                 self.install_elastix_bin(remote_server, devices)
-            else:
-                self.set_running(False)
             return
 
         msg = self.try_elastix()
@@ -1188,7 +1220,6 @@ class ElastixImpactWidget(AppTemplateWidget):
                 self.install_elastix_bin(remote_server, devices)
                 return
             else:
-                self.set_running(False)
                 return
 
         args_init = [
@@ -1212,7 +1243,7 @@ class ElastixImpactWidget(AppTemplateWidget):
             args_init += ["-mMask", "MovingMask.mha"]
 
         # Collect selected presets in the order displayed in the combo box
-        selected_presets = self.ship_selector.selected()
+        selected_presets = self.chip_selector.selected()
         presets = []
         for preset_name in selected_presets:
             presets.append(self.presets[preset_name])

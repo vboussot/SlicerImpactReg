@@ -235,6 +235,40 @@
                                                 </property>
                                              </widget>
                                           </item>
+                                          <item>
+                                             <widget class="QPushButton" name="refreshPresetsListButton">
+                                                <property name="toolTip">
+                                                   <string>Refresh presets list</string>
+                                                </property>
+                                                <property name="iconSize">
+                                                   <size>
+                                                      <width>16</width>
+                                                      <height>16</height>
+                                                   </size>
+                                                </property>
+                                                <property name="flat">
+                                                   <bool>true</bool>
+                                                </property>
+                                                <property name="text">
+                                                   <string />
+                                                </property>
+                                                <property name="maximumSize">
+                                                   <size>
+                                                      <width>24</width>
+                                                      <height>24</height>
+                                                   </size>
+                                                </property>
+                                                <property name="minimumSize">
+                                                   <size>
+                                                      <width>24</width>
+                                                      <height>24</height>
+                                                   </size>
+                                                </property>
+                                                <property name="styleSheet">
+                                                   <string notr="true">padding:0px; margin:0px;</string>
+                                                </property>
+                                             </widget>
+                                          </item>
                                        </layout>
                                     </item>
                                     <!-- Description -->
