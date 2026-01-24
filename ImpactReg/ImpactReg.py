@@ -19,6 +19,8 @@ from KonfAI import (
     Process,
     RemoteServer,
     _is_reload_setup,
+    has_node_content,
+    segmentation_node_to_labelmap,
 )
 from qt import QDesktopServices, QIcon, QSize, QUrl, QWidget
 from slicer.i18n import tr as _
@@ -556,13 +558,7 @@ class ElastixImpactWidget(AppTemplateWidget):
         """
         fixed_volume = self.get_parameter_node("FixedVolume")
         moving_volume = self.get_parameter_node("MovingVolume")
-        if (
-            fixed_volume
-            and fixed_volume.GetImageData()
-            and moving_volume
-            and moving_volume.GetImageData()
-            and self.chip_selector.selected()
-        ):
+        if has_node_content(fixed_volume) and has_node_content(moving_volume) and self.chip_selector.selected():
             self.ui.runRegistrationButton.toolTip = _("Start evaluation")
             self.ui.runRegistrationButton.enabled = True
         else:
@@ -591,18 +587,8 @@ class ElastixImpactWidget(AppTemplateWidget):
         # Enable/disable the evaluation button depending on QA mode
         if self.ui.qaTabWidget.currentWidget().name == "withRefTab":
             if (
-                (
-                    fixed_image_evaluation
-                    and fixed_image_evaluation.GetImageData()
-                    and moving_image_evaluation
-                    and moving_image_evaluation.GetImageData()
-                )
-                or (
-                    fixed_seg_evaluation
-                    and fixed_seg_evaluation.GetImageData()
-                    and moving_seg_evaluation
-                    and moving_seg_evaluation.GetImageData()
-                )
+                (has_node_content(fixed_image_evaluation) and has_node_content(moving_image_evaluation))
+                or (has_node_content(fixed_seg_evaluation) and has_node_content(moving_seg_evaluation))
                 or (
                     fixed_fid_evaluation
                     and fixed_fid_evaluation.GetNumberOfControlPoints() > 0
@@ -620,8 +606,7 @@ class ElastixImpactWidget(AppTemplateWidget):
             if (
                 transform_sequence
                 and transform_sequence.GetNumberOfDataNodes() > 1
-                and reference_volume
-                and reference_volume.GetImageData()
+                and has_node_content(reference_volume)
             ):
                 self.ui.runEvaluationButton.toolTip = _("Start uncertainty estimation")
                 self.ui.runEvaluationButton.enabled = True
@@ -693,7 +678,7 @@ class ElastixImpactWidget(AppTemplateWidget):
         else:
             args += ["--cpu", "1"]
 
-        def on_end_evaluation(args: list[list[str]]) -> None:
+        def on_end_evaluation() -> None:
             try:
                 from konfai.evaluator import Statistics
 
@@ -702,7 +687,6 @@ class ElastixImpactWidget(AppTemplateWidget):
                 self.evaluation_panel.refresh_images_list(
                     Path((self._work_dir / "Evaluation").rglob("*.mha").__next__().parent)
                 )
-                self._update_logs("Processing finished.")
                 if len(args_list) > 0:
                     self.next_evaluation(args_list)
             except Exception as e:
@@ -724,8 +708,8 @@ class ElastixImpactWidget(AppTemplateWidget):
         fixed_image_evaluation = self.ui.fixedImageEvaluationSelector.currentNode()
         moving_image_evaluation = self.ui.movingImageEvaluationSelector.currentNode()
 
-        fixed_seg_evaluation = self.ui.fixedSegEvaluationSelector.currentNode()
-        moving_seg_evaluation = self.ui.movingSegEvaluationSelector.currentNode()
+        fixed_seg_evaluation = segmentation_node_to_labelmap(self.ui.fixedSegEvaluationSelector.currentNode())
+        moving_seg_evaluation = segmentation_node_to_labelmap(self.ui.movingSegEvaluationSelector.currentNode())
 
         fixed_fid_evaluation = self.ui.fixedFidEvaluationSelector.currentNode()
         moving_fid_evaluation = self.ui.movingFidEvaluationSelector.currentNode()
@@ -736,12 +720,7 @@ class ElastixImpactWidget(AppTemplateWidget):
         args_list = []
 
         # --- Image-based metrics ---
-        if (
-            fixed_image_evaluation
-            and fixed_image_evaluation.GetImageData()
-            and moving_image_evaluation
-            and moving_image_evaluation.GetImageData()
-        ):
+        if has_node_content(fixed_image_evaluation) and has_node_content(moving_image_evaluation):
             # Export fixed image
             volume_storage_node = slicer.mrmlScene.CreateNodeByClass("vtkMRMLVolumeArchetypeStorageNode")
             volume_storage_node.SetFileName(str(self._work_dir / "FixedImage.mha"))
@@ -784,12 +763,8 @@ class ElastixImpactWidget(AppTemplateWidget):
                 ]
             )
         # --- Segmentation-based metrics ---
-        if (
-            fixed_seg_evaluation
-            and fixed_seg_evaluation.GetImageData()
-            and moving_seg_evaluation
-            and moving_seg_evaluation.GetImageData()
-        ):
+        if has_node_content(fixed_seg_evaluation) and has_node_content(moving_seg_evaluation):
+
             volume_storage_node = slicer.mrmlScene.CreateNodeByClass("vtkMRMLVolumeArchetypeStorageNode")
             volume_storage_node.SetFileName(str(self._work_dir / "FixedSeg.mha"))
             volume_storage_node.UseCompressionOff()
@@ -877,7 +852,7 @@ class ElastixImpactWidget(AppTemplateWidget):
             )
 
         # Optional mask used in all evaluations
-        if mask_evaluation and mask_evaluation.GetImageData():
+        if has_node_content(mask_evaluation):
             volume_storage_node = slicer.mrmlScene.CreateNodeByClass("vtkMRMLVolumeArchetypeStorageNode")
             volume_storage_node.SetFileName(str(self._work_dir / "Mask.mha"))
             volume_storage_node.UseCompressionOff()
@@ -886,6 +861,9 @@ class ElastixImpactWidget(AppTemplateWidget):
 
             for args in args_list:
                 args += ["--mask", "Mask.mha"]
+        if remote_server is not None:
+            args += ["--host", remote_server.host, "--port", remote_server.port, "--token", remote_server.token]
+
         self.next_evaluation(args_list)
 
     def uncertainty(self, remote_server: RemoteServer | None, devices: list[str]):
@@ -934,6 +912,9 @@ class ElastixImpactWidget(AppTemplateWidget):
         else:
             args += ["--cpu", "1"]
 
+        if remote_server is not None:
+            args += ["--host", remote_server.host, "--port", remote_server.port, "--token", remote_server.token]
+
         def on_end_function() -> None:
             from konfai.evaluator import Statistics
 
@@ -942,7 +923,6 @@ class ElastixImpactWidget(AppTemplateWidget):
             self.uncertainty_panel.refresh_images_list(
                 Path((self._work_dir / "Uncertainty").rglob("*.mha").__next__().parent)
             )
-            self._update_logs("Processing finished.")
 
         self.process.run("konfai-apps", self._work_dir, args, on_end_function)
 
@@ -1234,11 +1214,11 @@ class ElastixImpactWidget(AppTemplateWidget):
         fixed_mask_node = self.ui.fixedMaskSelector.currentNode()
         moving_mask_node = self.ui.movingMaskSelector.currentNode()
 
-        if fixed_mask_node and fixed_mask_node.GetImageData():
+        if has_node_content(fixed_mask_node):
             sitk.WriteImage(sitkUtils.PullVolumeFromSlicer(fixed_mask_node), str(self._work_dir / "FixedMask.mha"))
             args_init += ["-fMask", "FixedMask.mha"]
 
-        if moving_mask_node and moving_mask_node.GetImageData():
+        if has_node_content(moving_mask_node):
             sitk.WriteImage(sitkUtils.PullVolumeFromSlicer(moving_mask_node), str(self._work_dir / "MovingMask.mha"))
             args_init += ["-mMask", "MovingMask.mha"]
 
