@@ -33,7 +33,7 @@ All within a clinically-friendly environment.
 This quick tutorial demonstrates the typical clinical workflow: **load → run registration → review results → assess reliability**.
 
 ### 1) Install and open the module
-1. Install **3D Slicer ≥ 5.6**
+1. Install **3D Slicer ≥ 5.10**
 2. Open **3D Slicer** and go to **Extension Manager**
 3. Search for **ImpactReg**
 4. Click **Install**
@@ -150,6 +150,7 @@ Each preset includes:
 2. **Boussot, V. & Dillenseger, J-L.**  
    *KonfAI: A Modular and Fully Configurable Framework for Deep Learning in Medical Imaging.*  
    arXiv:2508.09823 — 2025  
+
 
 
 

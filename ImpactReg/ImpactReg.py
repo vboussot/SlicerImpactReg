@@ -1,3 +1,19 @@
+# Copyright (c) 2025 Valentin Boussot
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
 import json
 import os
 import platform
@@ -20,7 +36,6 @@ from KonfAI import (
     RemoteServer,
     _is_reload_setup,
     has_node_content,
-    segmentation_node_to_labelmap,
 )
 from qt import QDesktopServices, QIcon, QSize, QUrl, QWidget
 from slicer.i18n import tr as _
@@ -708,8 +723,8 @@ class ElastixImpactWidget(AppTemplateWidget):
         fixed_image_evaluation = self.ui.fixedImageEvaluationSelector.currentNode()
         moving_image_evaluation = self.ui.movingImageEvaluationSelector.currentNode()
 
-        fixed_seg_evaluation = segmentation_node_to_labelmap(self.ui.fixedSegEvaluationSelector.currentNode())
-        moving_seg_evaluation = segmentation_node_to_labelmap(self.ui.movingSegEvaluationSelector.currentNode())
+        fixed_seg_evaluation = self.ui.fixedSegEvaluationSelector.currentNode()
+        moving_seg_evaluation = self.ui.movingSegEvaluationSelector.currentNode()
 
         fixed_fid_evaluation = self.ui.fixedFidEvaluationSelector.currentNode()
         moving_fid_evaluation = self.ui.movingFidEvaluationSelector.currentNode()
