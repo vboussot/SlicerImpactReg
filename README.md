@@ -28,6 +28,12 @@ All within a clinically-friendly environment.
 
 ---
 
+## 🎥 Demonstration Video
+
+https://github.com/user-attachments/assets/fde28566-0b7c-4513-a66e-c78675321c89
+
+---
+
 ## ✅ What you can do in 3 minutes (step-by-step tutorial)
 
 This quick tutorial demonstrates the typical clinical workflow: **load → run registration → review results → assess reliability**.
@@ -150,6 +156,7 @@ Each preset includes:
 2. **Boussot, V. & Dillenseger, J-L.**  
    *KonfAI: A Modular and Fully Configurable Framework for Deep Learning in Medical Imaging.*  
    arXiv:2508.09823 — 2025  
+
 
 
 
