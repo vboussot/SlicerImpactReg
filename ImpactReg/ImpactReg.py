@@ -1003,7 +1003,7 @@ class ElastixImpactWidget(AppTemplateWidget):
         args_init: list[str],
         fixed_image_node,
         moving_image_node,
-        transforms: list[sitk.Transform] = [],
+        transforms: list[sitk.Transform],
     ) -> None:
         """
         Run Elastix sequentially for a list of presets.
@@ -1253,13 +1253,14 @@ class ElastixImpactWidget(AppTemplateWidget):
         sequence_node = self.ui.inputTransformSequenceSelector.currentNode()
         if sequence_node is not None:
             sequence_node.RemoveAllDataNodes()
-
+        transforms: list[sitk.Transform] = []
         # Start chained registration
         self.next_registration(
             presets,
             args_init.copy(),
             self.ui.fixedVolumeSelector.currentNode(),
             self.ui.movingVolumeSelector.currentNode(),
+            transforms,
         )
 
 
