@@ -1025,15 +1025,18 @@ class ElastixImpactWidget(AppTemplateWidget):
 
         for model_name in preset.get_models_name():
             try:
-                models_path.append(
-                    hf_hub_download(
+                if ":" in model_name:
+                    model_path = hf_hub_download(
                         repo_id=model_name.split(":")[0],
                         filename=model_name.split(":")[1],
                         repo_type="model",
                         revision=None,
                         local_files_only=True,
-                    )
-                )  # nosec B615
+                    )  # nosec B615
+                else:
+                    model_path = Path(model_name)
+
+                models_path.append(model_path)
             except Exception:
                 try:
                     models_path.append(
@@ -1067,7 +1070,9 @@ class ElastixImpactWidget(AppTemplateWidget):
                 else:
                     shutil.rmtree(f)
         # Copy models next to the work directory using the filenames expected by IMPACT
-        for model_path, model_name in zip(models_path, [name.split(":")[1] for name in preset.get_models_name()]):
+        for model_path, model_name in zip(
+            models_path, [name.split(":")[1] if ":" in name else Path(name).name for name in preset.get_models_name()]
+        ):
             link_path = self._work_dir / model_name
             if not link_path.exists():
                 link_path.parent.mkdir(parents=True, exist_ok=True)
