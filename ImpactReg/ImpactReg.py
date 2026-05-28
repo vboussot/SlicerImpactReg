@@ -489,7 +489,14 @@ class ElastixImpactWidget(AppTemplateWidget):
             self.ui.toggleDescriptionButton.setText("More ▼")
         self._description_expanded = not self._description_expanded
 
-    def app_setup(self, update_logs, update_progress, parameter_node):
+    def app_setup(
+        self,
+        update_logs,
+        update_progress,
+        parameter_node,
+        begin_status_progress: Callable[[], None] | None = None,
+        end_status_progress: Callable[[], None] | None = None,
+    ) -> None:
         """
         Initialize the app-level process and parameter node.
 
