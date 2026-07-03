@@ -7,9 +7,7 @@ set(MODULE_PYTHON_SCRIPTS
   )
 
 set(MODULE_PYTHON_RESOURCES
-    Resources/UI/Elastix${MODULE_NAME}.ui
     Resources/Icons/${MODULE_NAME}.png
-    Resources/bin/install.py
   )
 
 #-----------------------------------------------------------------------------
