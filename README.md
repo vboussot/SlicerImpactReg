@@ -1,5 +1,5 @@
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/vboussot/KonfAI/blob/main/LICENSE)
-[![Paper](https://img.shields.io/badge/📌%20Paper-KonfAI-blue)](https://arxiv.org/abs/2503.24121)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/vboussot/SlicerImpactReg/blob/main/LICENSE)
+[![Paper](https://img.shields.io/badge/📌%20Paper-IMPACT-blue)](https://arxiv.org/abs/2503.24121)
 
 # 🔄 Slicer IMPACT-Reg
 
@@ -41,9 +41,9 @@ This quick tutorial demonstrates the typical clinical workflow: **load → run r
 ### 1) Install and open the module
 1. Install **3D Slicer ≥ 5.10**
 2. Open **3D Slicer** and go to **Extension Manager**
-3. Search for **ImpactReg**
-4. Click **Install**
-5. Restart Slicer and open the **ImpactReg** module from the **Registration** category
+3. Search for **ImpactReg** and click **Install** — the **KonfAI** extension is installed automatically as a required dependency
+4. Restart Slicer and open the **ImpactReg** module from the **Registration** category
+5. The first time you open the module, the `impact-reg-konfai` Python package (with its matching KonfAI runtime) is installed automatically; the registration presets are then downloaded on demand from Hugging Face
 
 ### 2) Load a case
 1. In Slicer, click **DICOM** (or drag-and-drop a NIfTI / NRRD / MHA file)
@@ -54,9 +54,9 @@ This quick tutorial demonstrates the typical clinical workflow: **load → run r
 1. On ImpactReg module go to the **Registration** tab
 2. Select:
    - **Fixed volume** and **Moving volume** 
-   - **Preset**: choose one or more presets (e.g., Generic Rigid + BSpline or IMPACT CT/MR).
-        - To add a preset, select it from the combo box.
-        - To remove a preset, click on it in the list of selected presets.
+   - **Preset**: the main preset (e.g., IMPACT CT/MR) — it seeds the ensemble and drives evaluation.
+   - **Ensemble with** *(optional)*: add one or more further presets; all selected presets run and their displacement fields are averaged into a single transform.
+   - Enable **Uncertainty** if you want to keep each preset's displacement field for the QA uncertainty step (§5).
 3. Click **Run**
 4. Wait for completion: once the process finishes, the warped moving volume is automatically overlaid with the fixed volume in the slice views
 
@@ -95,18 +95,14 @@ Reported metrics:
 
 ### 5) QA without reference (uncertainty estimation)
 
-When no ground-truth annotation is available, you can still assess registration reliability.
+When no ground-truth annotation is available, you can still assess registration reliability from the spread between presets.
 
-1. Go to the **Evaluation** tab and select **No reference (Uncertainty)**.
-2. Select:
-   - The **Transform sequence** generated during registration,
-   - A **reference image** defining the transform domain.
+1. In the **Registration** tab, select **at least two presets** (a main preset + one or more via **Ensemble with**), enable the **Uncertainty** checkbox, then **Run**. Each preset's displacement field is kept in a `RegistrationDVFSequence`.
+2. Go to the **Evaluation** tab and select **No reference (Uncertainty)** — the displacement-field sequence produced above is used automatically.
 3. Click **Run**.
-4. Review the generated uncertainty outputs:
-   - Uncertainty maps.
+4. Review the generated uncertainty maps.
 
-Uncertainty can be estimated using:
-- Multi-preset ensembling.
+Uncertainty is estimated from the statistical spread of the per-preset displacement fields (multi-preset ensembling).
 
 ---
 
@@ -132,7 +128,7 @@ Uncertainty can be estimated using:
 - Analysis of the statistical variability of transforms  
 - Automatic visualization of uncertainty volumes  
 - JSON metrics export for downstream analysis
-- 
+
 ---
 
 ## 🧩 Presets & Models
