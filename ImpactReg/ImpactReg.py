@@ -183,6 +183,8 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
         # TTA: each preset app averages flipped registrations internally (standard konfai mechanism).
         if self.ui.ttaSpinBox.value:
             args += ["--tta", str(self.ui.ttaSpinBox.value)]
+        # Tuned preset parameters from the Advanced dialog, forwarded to each preset (--set path=value).
+        args += self._param_override_set_args()
         # The Uncertainty checkbox gates whether the (large) per-preset displacement fields are kept, so the
         # QA panel can measure the ensemble spread; without it only the averaged transform is produced.
         if self.ui.uncertaintyCheckBox.isChecked():
