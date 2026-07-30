@@ -76,7 +76,8 @@ class ImpactReg(ScriptedLoadableModule):
         self.parent.helpText = _(
             "<p>"
             "Slicer IMPACT-Reg is a 3D Slicer module dedicated to <b>multimodal medical image registration</b>."
-            " It integrates the <b>IMPACT</b> deep semantic similarity metric within the Elastix registration engine,"
+            " It drives the <b>IMPACT</b> deep semantic similarity metric across multiple registration engines"
+            " (Elastix, ConvexAdam, FireANTs),"
             " and exposes predefined registration presets through a simple graphical interface."
             "</p>"
             "<p>"
@@ -118,8 +119,8 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
 
     def __init__(self, template) -> None:
         super().__init__(template)
-        # This panel ensembles *presets* (the repository apps), not model checkpoints, and every preset
-        # runs the deterministic elastix engine. The app selector at the top picks the main preset (it
+        # This panel ensembles *presets* (the repository apps), not model checkpoints. Presets may run
+        # different engines (Elastix, ConvexAdam, FireANTs). The app selector at the top picks the main preset (it
         # seeds the ensemble and drives evaluation); the "Ensemble with" combo adds further presets to
         # average in. Hide the inference-only controls that do not apply: the ensemble count and MC-dropout.
         self.ui.label_selected_checkpoints.setText(_("Presets"))
@@ -133,6 +134,16 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
 
     def on_app_changed(self, app) -> None:
         super().on_app_changed(app)
+        # The preset selector reuses the ensemble widgets, which the base panel hides for a
+        # checkpoint-less app — re-show them (the count spin stays hidden: presets are picked, not counted).
+        for widget in (
+            self.ui.label_ensemble,
+            self.ui.checkpointsComboBox,
+            self.ui.label_selected_checkpoints,
+            self.ui.selectedCheckpointsWidget,
+        ):
+            widget.setVisible(True)
+        self.ui.label_stochastic.setVisible(True)
         # The app selector picks the main preset: it seeds the ensemble (the "Presets" chips) and drives
         # evaluation. Add more presets with the "Ensemble with" combo below; switching the main reseeds
         # the ensemble to it. The CLI averages the displacement fields of all the selected presets.
@@ -464,7 +475,7 @@ class ImpactRegWidget(ScriptedLoadableModuleWidget):
         if self.konfai_core is not None:
             # The registration panels shell out to the ``impact-reg-konfai`` CLI; ensure that package is
             # installed (it pins and pulls the matching konfai / konfai-apps). Shared installer from the
-            # KonfAI extension, so an editable development install is respected and never downgraded.
+            # KonfAI extension: it checks PyPI and offers the upgrade when a newer release exists.
             install_package("impact-reg-konfai", "IMPACT-Reg")
             self.konfai_core.enter()
 
