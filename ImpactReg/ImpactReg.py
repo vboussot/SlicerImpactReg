@@ -199,7 +199,7 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
         # The Uncertainty checkbox gates whether the (large) per-preset displacement fields are kept, so the
         # QA panel can measure the ensemble spread; without it only the averaged transform is produced.
         if self.ui.uncertaintyCheckBox.isChecked():
-            args += ["--uncertainty"]
+            args += ["--keep-fields"]
         if devices:
             args += ["--gpu"] + devices
         else:
@@ -289,8 +289,7 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
 
         self.evaluation_panel.clear_metrics()
 
-        app = self.template.ui.appComboBox.currentData
-        args = ["eval", "--preset", app.get_name().split(":")[-1], "-o", "Evaluation"]
+        args = ["eval", "-o", "Evaluation"]
 
         # The transform produced by the registration (identity when none is selected).
         transform_node = self.ui.inputTransformSelector.currentNode()
@@ -380,8 +379,7 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
             self._write_volume(sequence_node.GetNthDataNode(index), self._work_dir / file_name)
             dvf_files.append(file_name)
 
-        app = self.template.ui.appComboBox.currentData
-        args = ["uncertainty", "--preset", app.get_name().split(":")[-1], "--dvf", *dvf_files, "-o", "Uncertainty"]
+        args = ["uncertainty", "--dvf", *dvf_files, "-o", "Uncertainty"]
         if devices:
             args += ["--gpu"] + devices
         else:
