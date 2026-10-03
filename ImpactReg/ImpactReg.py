@@ -199,7 +199,7 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
         # The Uncertainty checkbox gates whether the (large) per-preset displacement fields are kept, so the
         # QA panel can measure the ensemble spread; without it only the averaged transform is produced.
         if self.ui.uncertaintyCheckBox.isChecked():
-            args += ["--uncertainty"]
+            args += ["--keep-fields"]
         if devices:
             args += ["--gpu"] + devices
         else:
@@ -229,15 +229,24 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
                 background=fixed_node, foreground=moved_node, foregroundOpacity=0.5, fit=True
             )
 
-            # Per-preset displacement fields: keep them in a sequence for uncertainty estimation.
+            # Per-preset transforms: kept in a sequence, sampled on the fixed grid, for uncertainty estimation.
             sequence_node = self.template.ui.inputVolumeSequenceSelector.currentNode()
             if sequence_node is None:
                 sequence_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSequenceNode", "RegistrationDVFSequence")
                 self.template.ui.inputVolumeSequenceSelector.setCurrentNode(sequence_node)
             else:
                 sequence_node.RemoveAllDataNodes()
-            for index, dvf_file in enumerate(sorted((case_dir / "Ensemble").glob("*.mha"))):
-                temp_node = sitkUtils.PushVolumeToSlicer(sitk.ReadImage(str(dvf_file)), name=dvf_file.stem)
+            fixed_image = sitkUtils.PullVolumeFromSlicer(fixed_node)
+            for index, dvf_file in enumerate(sorted((case_dir / "Ensemble").glob("*.h5"))):
+                field = sitk.TransformToDisplacementField(
+                    sitk.ReadTransform(str(dvf_file)),
+                    sitk.sitkVectorFloat32,
+                    fixed_image.GetSize(),
+                    fixed_image.GetOrigin(),
+                    fixed_image.GetSpacing(),
+                    fixed_image.GetDirection(),
+                )
+                temp_node = sitkUtils.PushVolumeToSlicer(field, name=dvf_file.stem)
                 sequence_node.SetDataNodeAtValue(temp_node, str(index))
                 slicer.mrmlScene.RemoveNode(temp_node)
 
@@ -280,8 +289,7 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
 
         self.evaluation_panel.clear_metrics()
 
-        app = self.template.ui.appComboBox.currentData
-        args = ["eval", "--preset", app.get_name().split(":")[-1], "-o", "Evaluation"]
+        args = ["eval", "-o", "Evaluation"]
 
         # The transform produced by the registration (identity when none is selected).
         transform_node = self.ui.inputTransformSelector.currentNode()
@@ -367,14 +375,11 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
         dvf_files = []
         for index in range(count):
             file_name = f"dvf_{index}.mha"
-            sitk.WriteImage(
-                sitkUtils.PullVolumeFromSlicer(sequence_node.GetNthDataNode(index)),
-                str(self._work_dir / file_name),
-            )
+            # Slicer's storage node writes the three-component field as it is; sitkUtils cannot pull vector volumes.
+            self._write_volume(sequence_node.GetNthDataNode(index), self._work_dir / file_name)
             dvf_files.append(file_name)
 
-        app = self.template.ui.appComboBox.currentData
-        args = ["uncertainty", "--preset", app.get_name().split(":")[-1], "--dvf", *dvf_files, "-o", "Uncertainty"]
+        args = ["uncertainty", "--dvf", *dvf_files, "-o", "Uncertainty"]
         if devices:
             args += ["--gpu"] + devices
         else:
@@ -382,22 +387,20 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
 
         def on_end_function() -> None:
             uncertainty_dir = self._work_dir / "Uncertainty"
-            json_file = next(uncertainty_dir.rglob("*.json"), None)
-            if json_file is None:
+            map_file = next(uncertainty_dir.rglob("*.mha"), None)
+            if map_file is None:
                 self._update_logs(
-                    "[ImpactReg] Uncertainty finished but produced no metrics file "
-                    f"(no .json under {uncertainty_dir}). "
+                    "[ImpactReg] Uncertainty finished but produced no map "
+                    f"(no .mha under {uncertainty_dir}). "
                     "The process probably failed: check the log above for errors.",
                     False,
                 )
                 return
 
-            from konfai.evaluator import Statistics
-
-            self.uncertainty_panel.set_metrics(Statistics(json_file).read())
-            mha_file = next(uncertainty_dir.rglob("*.mha"), None)
-            if mha_file is not None:
-                self.uncertainty_panel.refresh_images_list(mha_file.parent)
+            # The map is the spread of the displacement magnitudes, in mm: its mean over the fixed grid.
+            spread = sitk.GetArrayFromImage(sitk.ReadImage(str(map_file)))  # a copy: a view would outlive its image
+            self.uncertainty_panel.set_metrics({"Uncertainty (mm)": float(spread.mean())})
+            self.uncertainty_panel.refresh_images_list(map_file.parent)
 
         self.process.run("impact-reg-konfai", self._work_dir, args, on_end_function)
 
