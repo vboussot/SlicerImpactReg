@@ -157,12 +157,8 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
         return entry[1].currentNode() if entry else None
 
     def inference(self, remote_server: RemoteServer | None, devices: list[str]) -> None:
-        """Run the registration: one ``impact-reg-konfai register`` call with the selected presets."""
-        if remote_server is not None:
-            self._update_logs("[ImpactReg] Remote servers are not supported for registration; run locally.", False)
-            self.template.set_running(False)
-            return
-
+        """Run the registration: one ``impact-reg-konfai register`` call with the selected presets. With a server,
+        each preset runs there and the moved image and the ensemble are computed here."""
         self.template.evaluation_panel.clear_images_list()
         self.template.uncertainty_panel.clear_images_list()
         self.template.evaluation_panel.clear_metrics()
@@ -204,6 +200,10 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
             args += ["--gpu"] + devices
         else:
             args += ["--cpu", "1"]
+        if remote_server is not None:
+            args += ["--host", remote_server.host, "--port", str(remote_server.port)]
+            if remote_server.token:
+                args += ["--token", remote_server.token]
 
         def on_end_function() -> None:
             case_dir = self._work_dir / "Output" / "P000"
@@ -283,9 +283,9 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
     def evaluation(self, remote_server: RemoteServer | None, devices: list[str]) -> None:
         """Evaluate the registration on the modality of the active evaluation tab."""
         if remote_server is not None:
-            self._update_logs("[ImpactReg] Remote servers are not supported for evaluation; run locally.", False)
-            self.template.set_running(False)
-            return
+            # The metrics read the transform this machine holds: they run here, on its CPU.
+            self._update_logs("[ImpactReg] Evaluation runs on this machine, not on the server.")
+            devices = []
 
         self.evaluation_panel.clear_metrics()
 
@@ -355,9 +355,9 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
     def uncertainty(self, remote_server: RemoteServer | None, devices: list[str]) -> None:
         """Estimate registration uncertainty from the per-preset displacement fields."""
         if remote_server is not None:
-            self._update_logs("[ImpactReg] Remote servers are not supported for uncertainty; run locally.", False)
-            self.template.set_running(False)
-            return
+            # The spread is measured on the fields this machine holds: it runs here, on its CPU.
+            self._update_logs("[ImpactReg] Uncertainty runs on this machine, not on the server.")
+            devices = []
 
         self.uncertainty_panel.clear_metrics()
 

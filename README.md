@@ -78,7 +78,7 @@
   The gear next to Run lists the parameters each preset exposes (iterations, grid spacing, learning rate and so on). Changed values are forwarded to the engine, and *Save as local app* keeps them as a new preset.
 
 - **Local GPU or CPU**
-  The registration runs in a separate process on the selected device; the RAM and VRAM gauges follow it. Remote servers are not used for registration yet.
+  The registration runs in a separate process on the selected device; the RAM and VRAM gauges follow it. With a remote server selected, each preset runs on that server and the moved image, the evaluation and the uncertainty are computed on this machine; the server must list the presets in its `--apps`, as `impact-reg-konfai` names them (`VBoussot/ImpactReg@<revision>:<preset>`).
   The CLI keeps a large pair out of core (whole on a grid sized to the memory, then native tiles for the presets that declare them), but Slicer holds what it shows: the moved image and, for uncertainty, every preset's field as a dense volume. Register a very large pair with `impact-reg-konfai` and open a coarser level of the result.
 
 ---
