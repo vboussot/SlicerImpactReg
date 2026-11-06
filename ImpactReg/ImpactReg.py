@@ -147,9 +147,23 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
         # The app selector picks the main preset: it seeds the ensemble (the "Presets" chips) and drives
         # evaluation. Add more presets with the "Ensemble with" combo below; switching the main reseeds
         # the ensemble to it. The CLI averages the displacement fields of all the selected presets.
+        self._seed_presets(app)
+
+    def _seed_presets(self, app) -> None:
+        """Seed the ensemble with the main app's chosen preset (the Advanced dialog's), else its first one."""
         presets = self.template.get_preset_names()
-        current = app.get_name().split(":")[-1]
-        self.chip_selector.update(presets, presets, [current] if current in presets else presets[:1])
+        name = app.get_name().split(":")[-1]
+        chosen = f"{name}#{self._preset}" if self._preset else None
+        own = [preset for preset in presets if preset.split("#")[0] == name]
+        self.chip_selector.update(presets, presets, [chosen] if chosen in presets else own[:1] or presets[:1])
+
+    def on_advanced_clicked(self):
+        """The Advanced dialog may choose another preset of the main app: the ensemble is reseeded with it."""
+        before = self._preset
+        super().on_advanced_clicked()
+        app = self.template.ui.appComboBox.currentData
+        if app is not None and self._preset != before:
+            self._seed_presets(app)
 
     def _extra_node(self, key: str):
         """Return the node of the extra input selector declared under ``key`` in app.json (or None)."""
@@ -412,11 +426,18 @@ class ImpactRegAppTemplateWidget(KonfAIAppTemplateWidget):
     QA_PANEL_CLASS = RegistrationQAPanel
 
     def get_preset_names(self) -> list[str]:
-        """Return the preset names (the apps listed in the selection combo)."""
+        """Every preset the apps of the selection combo offer, as ``APP#PRESET`` (``impact-reg-konfai register``
+        takes them so); an app that declares none by its name alone."""
         combo = self.ui.appComboBox
-        return [
-            combo.itemData(i).get_name().split(":")[-1] for i in range(combo.count) if combo.itemData(i) is not None
-        ]
+        names: list[str] = []
+        for index in range(combo.count):
+            app = combo.itemData(index)
+            if app is None:
+                continue
+            name = app.get_name().split(":")[-1]
+            presets = app.get_presets() if hasattr(app, "get_presets") else {}
+            names += [f"{name}#{preset}" for preset in presets] or [name]
+        return names
 
 
 class ImpactRegWidget(ScriptedLoadableModuleWidget):
