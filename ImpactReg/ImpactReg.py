@@ -45,13 +45,13 @@ IMPACT_REG_REPO = "VBoussot/ImpactReg"
 
 # Map each evaluation config of the engine apps to the fixed/moving flags of `impact-reg-konfai eval`: in the
 # declared order, the Transform entry is --transform, then the fixed side, the moving side, and Mask_* the mask.
-# The measures without reference take the transform alone. A config impact-reg-konfai does not run (the inverse
-# consistency, which takes a second transform) runs as any app's evaluation: konfai-apps eval.
+# A config impact-reg-konfai does not run as a tab runs as any app's evaluation, konfai-apps eval: the inverse
+# consistency (a second transform), and the measures without reference (the transform, and the fixed image a
+# B-spline is sampled on).
 EVALUATION_FLAGS = {
     "Evaluation_with_images.yml": ("-f", "-m"),
     "Evaluation_with_seg.yml": ("--gt-fixed-seg", "--gt-moving-seg"),
     "Evaluation_with_fid.yml": ("--gt-fixed-fid", "--gt-moving-fid"),
-    "Evaluation_no_reference.yml": (),
 }
 
 # The references of the engine apps' uncertainty tabs, by entry, as the flags of `impact-reg-konfai uncertainty`.
