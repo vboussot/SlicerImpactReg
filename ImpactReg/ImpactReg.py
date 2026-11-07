@@ -45,12 +45,13 @@ IMPACT_REG_REPO = "VBoussot/ImpactReg"
 
 # Map each evaluation config of the engine apps to the fixed/moving flags of `impact-reg-konfai eval`: in the
 # declared order, the Transform entry is --transform, then the fixed side, the moving side, and Mask_* the mask.
-# The Jacobian measures the transform alone.
+# The measures without reference take the transform alone. A config impact-reg-konfai does not run (the inverse
+# consistency, which takes a second transform) runs as any app's evaluation: konfai-apps eval.
 EVALUATION_FLAGS = {
     "Evaluation_with_images.yml": ("-f", "-m"),
     "Evaluation_with_seg.yml": ("--gt-fixed-seg", "--gt-moving-seg"),
     "Evaluation_with_fid.yml": ("--gt-fixed-fid", "--gt-moving-fid"),
-    "Evaluation_with_jacobian.yml": (),
+    "Evaluation_no_reference.yml": (),
 }
 
 
@@ -333,10 +334,7 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
         else:
             flags = EVALUATION_FLAGS.get(evaluation_key.evaluation_file)
             if flags is None:
-                self._update_logs(
-                    f"[ImpactReg] Unsupported evaluation config '{evaluation_key.evaluation_file}'.", False
-                )
-                self.template.set_running(False)
+                super().evaluation(remote_server, devices)
                 return
             # Manifest order: the Transform entry (it replaces the panel's transform), the fixed side, the moving
             # side, Mask_* the evaluation mask.
