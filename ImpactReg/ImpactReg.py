@@ -43,12 +43,14 @@ from slicer.ScriptedLoadableModule import ScriptedLoadableModule, ScriptedLoadab
 
 IMPACT_REG_REPO = "VBoussot/ImpactReg"
 
-# Map each evaluation config of the preset bundles to the fixed/moving flags of
-# `impact-reg-konfai eval` (the first declared input is the fixed side, the second the moving side).
+# Map each evaluation config of the engine apps to the fixed/moving flags of `impact-reg-konfai eval`: in the
+# declared order, the Transform entry is --transform, then the fixed side, the moving side, and Mask_* the mask.
+# The Jacobian measures the transform alone.
 EVALUATION_FLAGS = {
     "Evaluation_with_images.yml": ("-f", "-m"),
     "Evaluation_with_seg.yml": ("--gt-fixed-seg", "--gt-moving-seg"),
     "Evaluation_with_fid.yml": ("--gt-fixed-fid", "--gt-moving-fid"),
+    "Evaluation_with_jacobian.yml": (),
 }
 
 
@@ -329,16 +331,25 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
                 )
                 self.template.set_running(False)
                 return
-            # Manifest order: first entry = fixed side, second = moving side, Mask_* = evaluation mask.
-            items = list(self._evaluation_input_selectors[evaluation_key].items())
-            for position, (key, (_required, selector)) in enumerate(items):
-                file_name = self._export_node(selector.currentNode(), key)
+            # Manifest order: the Transform entry (it replaces the panel's transform), the fixed side, the moving
+            # side, Mask_* the evaluation mask.
+            sides = iter(flags)
+            for key, (_required, selector) in self._evaluation_input_selectors[evaluation_key].items():
+                node = selector.currentNode()
+                if node is not None and node.IsA("vtkMRMLTransformNode"):
+                    slicer.util.saveNode(node, str(self._work_dir / "Transform.h5"))
+                    if "--transform" not in args:
+                        args += ["--transform", "Transform.h5"]
+                    continue
+                file_name = self._export_node(node, key)
                 if file_name is None:
                     continue
-                if position < 2:
-                    args += [flags[position], file_name]
-                elif key.startswith("Mask"):
+                if key.startswith("Mask"):
                     args += ["--mask", file_name]
+                else:
+                    flag = next(sides, None)
+                    if flag is not None:
+                        args += [flag, file_name]
 
         if devices:
             args += ["--gpu"] + devices
