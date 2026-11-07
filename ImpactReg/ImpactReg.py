@@ -152,15 +152,22 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
         self._seed_presets(app)
 
     def _seed_presets(self, app) -> None:
-        """Seed the ensemble with the main app's chosen preset (the Advanced dialog's), else its first one."""
+        """Seed the ensemble with the main app's chosen preset (under the app selector), else its first one."""
         presets = self.template.get_preset_names()
         name = app.get_name().split(":")[-1]
         chosen = f"{name}#{self._preset}" if self._preset else None
         own = [preset for preset in presets if preset.split("#")[0] == name]
         self.chip_selector.update(presets, presets, [chosen] if chosen in presets else own[:1] or presets[:1])
 
+    def set_preset(self, preset: str | None) -> None:
+        """The preset chosen under the app selector is the main one: the ensemble is reseeded with it."""
+        super().set_preset(preset)
+        app = self.template.ui.appComboBox.currentData
+        if app is not None:
+            self._seed_presets(app)
+
     def on_advanced_clicked(self):
-        """The Advanced dialog may choose another preset of the main app: the ensemble is reseeded with it."""
+        """The Advanced dialog may save a new preset of the main app, then chosen: the ensemble is reseeded with it."""
         before = self._preset
         super().on_advanced_clicked()
         app = self.template.ui.appComboBox.currentData
