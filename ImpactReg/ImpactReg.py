@@ -153,12 +153,14 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
         self._seed_presets(app)
 
     def _seed_presets(self, app) -> None:
-        """Seed the ensemble with the main app's chosen preset (under the app selector), else its first one."""
+        """Seed the ensemble with the main app's chosen preset (under the app selector), its base config when none is
+        chosen, as the selector shows it."""
         presets = self.template.get_preset_names()
         name = app.get_name().split(":")[-1]
-        chosen = f"{name}#{self._preset}" if self._preset else None
-        own = [preset for preset in presets if preset.split("#")[0] == name]
-        self.chip_selector.update(presets, presets, [chosen] if chosen in presets else own[:1] or presets[:1])
+        chosen = f"{name}#{self._preset}" if self._preset else name
+        if chosen not in presets:
+            presets.insert(0, chosen)
+        self.chip_selector.update(presets, presets, [chosen])
 
     def set_preset(self, preset: str | None) -> None:
         """The preset chosen under the app selector is the main one: the ensemble is reseeded with it."""
