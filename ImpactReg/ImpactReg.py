@@ -18,10 +18,10 @@
 
 The module reuses the generic SlicerKonfAI app widget (selection / inference / QA panels)
 and only substitutes the two panels that drive a CLI: registration runs
-``impact-reg-konfai register`` (the checkpoint chips select the *presets*; several presets
-are ensembled — their displacement fields are averaged by the CLI), evaluation runs
-``impact-reg-konfai eval`` (the CLI warps the moving data with the transform), and
-uncertainty runs ``impact-reg-konfai uncertainty`` on the per-preset displacement fields.
+``impact-reg-konfai register`` with the presets of the base panel's chips (several are
+ensembled: their displacement fields averaged, their stack kept with Uncertainty), and
+evaluation runs ``impact-reg-konfai eval`` (the CLI warps the moving data with the
+transform). Uncertainty is the base panel's: konfai-apps, with the engine apps' tabs.
 """
 
 import SimpleITK as sitk  # noqa: N813
@@ -52,13 +52,6 @@ EVALUATION_FLAGS = {
     "Evaluation_with_images.yml": ("-f", "-m"),
     "Evaluation_with_seg.yml": ("--gt-fixed-seg", "--gt-moving-seg"),
     "Evaluation_with_fid.yml": ("--gt-fixed-fid", "--gt-moving-fid"),
-}
-
-# The references of the engine apps' uncertainty tabs, by entry, as the flags of `impact-reg-konfai uncertainty`.
-UNCERTAINTY_FLAGS = {
-    "FixedFid": "--gt-fixed-fid",
-    "MovingFid": "--gt-moving-fid",
-    "MovingSeg": "--gt-moving-seg",
 }
 
 
@@ -215,6 +208,8 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
             stack = next((path for path in sorted(case_dir.glob("InferenceStack.*")) if path.is_file()), None)
             if stack is not None:
                 self.load_stack(stack, presets)
+            else:
+                self.clear_stack()  # none of the previous registration's fields left to measure
 
             self._update_logs("Registration results loaded into Slicer.")
 
@@ -222,7 +217,8 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
 
 
 class RegistrationQAPanel(KonfAIAppQAPanel):
-    """QA panel variant that drives ``impact-reg-konfai eval`` and ``impact-reg-konfai uncertainty``.
+    """QA panel variant that drives ``impact-reg-konfai eval``; the uncertainty tabs (the engine apps' own
+    Uncertainty*.yml) run as any app's, through konfai-apps.
 
     Unlike the generic panel, the raw (unwarped) nodes are exported: the CLI applies
     the transform to the moving data itself (images/segmentations/landmarks).
@@ -321,56 +317,6 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
             mha_file = next(evaluation_dir.rglob("*.mha"), None)
             if mha_file is not None:
                 self.evaluation_panel.refresh_images_list(mha_file.parent)
-
-        self.process.run("impact-reg-konfai", self._work_dir, args, on_end_function)
-
-    def uncertainty(self, remote_server: RemoteServer | None, devices: list[str]) -> None:
-        """How the ensemble's registrations disagree, from its stack: ``impact-reg-konfai uncertainty`` with the
-        references of the current tab (the engine apps' inputs_uncertainties), each as its flag."""
-        if remote_server is not None:
-            # The spread is measured on the fields this machine holds: it runs here, on its CPU.
-            self._update_logs("[ImpactReg] Uncertainty runs on this machine, not on the server.")
-            devices = []
-
-        self.uncertainty_panel.clear_metrics()
-
-        sequence_node = self.ui.inputVolumeSequenceSelector.currentNode()
-        if sequence_node is None or sequence_node.GetNumberOfDataNodes() < 2:
-            self._update_logs(
-                "[ImpactReg] Uncertainty needs at least two displacement fields "
-                "(run a registration with several presets and Uncertainty ticked first).",
-                False,
-            )
-            self.template.set_running(False)
-            return
-        self.write_stack(sequence_node, self._work_dir / "InferenceStack.mha")
-
-        args = ["uncertainty", "-i", "InferenceStack.mha", "-o", "Uncertainty"]
-        key = self._current_uncertainty_key()
-        for name, (_required, selector) in (self._uncertainty_input_selectors.get(key, {}) if key else {}).items():
-            if selector.currentNode() is not None and name in UNCERTAINTY_FLAGS:
-                args += [UNCERTAINTY_FLAGS[name], self._save_entry(name, selector.currentNode())]
-        if devices:
-            args += ["--gpu"] + devices
-        else:
-            args += ["--cpu", "1"]
-
-        def on_end_function() -> None:
-            uncertainty_dir = self._work_dir / "Uncertainty"
-            summary = uncertainty_dir / "Uncertainty_summary.json"
-            if not summary.is_file():
-                self._update_logs(
-                    "[ImpactReg] Uncertainty finished but produced no summary "
-                    f"({summary} is missing). The process probably failed: check the log above for errors.",
-                    False,
-                )
-                return
-            from konfai.evaluator import Statistics
-
-            self.uncertainty_panel.set_metrics(Statistics(summary).read())
-            map_file = next(uncertainty_dir.rglob("*.mha"), None)
-            if map_file is not None:
-                self.uncertainty_panel.refresh_images_list(map_file.parent)
 
         self.process.run("impact-reg-konfai", self._work_dir, args, on_end_function)
 

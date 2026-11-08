@@ -176,7 +176,7 @@ konfai-apps infer VBoussot/ImpactReg:ConvexAdam#composite -i ct.mha -i mr.mha -o
 
 ## 🧩 What the extension is made of
 
-The module registers one app template, **Registration**, for the apps of `VBoussot/ImpactReg` on the `KonfAI` facade of the KonfAI extension (API version 2). Two panels are subclassed: the inference panel drives `impact-reg-konfai register` with the presets of SlicerKonfAI's preset chips, the QA panel drives `impact-reg-konfai eval` and `impact-reg-konfai uncertainty` and exports the raw nodes, since the CLI warps the moving data itself. The app list, the process manager, the log, the device row and the gauges come from [SlicerKonfAI](https://github.com/vboussot/SlicerKonfAI).
+The module registers one app template, **Registration**, for the apps of `VBoussot/ImpactReg` on the `KonfAI` facade of the KonfAI extension (API version 2). Two panels are subclassed: the inference panel drives `impact-reg-konfai register` with the presets of SlicerKonfAI's preset chips, the QA panel drives `impact-reg-konfai eval` and exports the raw nodes, since the CLI warps the moving data itself; the uncertainty tabs are the engine apps' own, run through konfai-apps. The app list, the process manager, the log, the device row and the gauges come from [SlicerKonfAI](https://github.com/vboussot/SlicerKonfAI).
 
 Run from source:
 
