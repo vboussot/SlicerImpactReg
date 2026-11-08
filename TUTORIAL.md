@@ -27,16 +27,16 @@ module works the same way.
    ![The MRI under the CT organ contours, before registration](Screenshots/tutorial/02-before.jpg)
 
 3. **Choose the preset.** The app list holds the presets of `VBoussot/ImpactReg`: elastix,
-   ConvexAdam and FireANTs engines, driven by the IMPACT metric or by intensities. *ConvexAdam
-   (MIND)* runs the ConvexAdam coarse and fine passes on MIND features through `itk-impact`. The
+   ConvexAdam and FireANTs engines, driven by the IMPACT metric or by intensities.
+   `ConvexAdam#composite` runs the ConvexAdam coarse and fine passes on MIND features through `itk-impact`. The
    card under the list describes it. **Fixed image** is the CT, **Moving image** the MRI (the
    panel picks two distinct volumes by itself); the masks are optional and restrict the metric
    region.
 
    ![Preset chosen, fixed and moving images set](Screenshots/tutorial/03-preset.jpg)
 
-4. **Ensemble and uncertainty.** The **Presets** chips add further presets, here *FireANTs SyN,
-   anatomix + MIND features* and *elastix + IMPACT (Static)*: one deformable preset per engine,
+4. **Ensemble and uncertainty.** The **Presets** chips add further presets, here `FireANTs#anatomix`
+   and `Elastix#impact_static`: one deformable preset per engine,
    all three driven by IMPACT. The **Presets** row shows the three chips; all will run and their
    displacement fields will be averaged into one transform. **TTA** is the number of flipped
    registrations each preset averages. **Uncertainty** keeps the displacement field of each preset
