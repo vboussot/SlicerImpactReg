@@ -27,16 +27,16 @@ module works the same way.
    ![The MRI under the CT organ contours, before registration](Screenshots/tutorial/02-before.jpg)
 
 3. **Choose the preset.** The app list holds the presets of `VBoussot/ImpactReg`: elastix,
-   ConvexAdam and FireANTs engines, driven by the IMPACT metric or by intensities. *ConvexAdam
-   (MIND)* runs the ConvexAdam coarse and fine passes on MIND features through `itk-impact`. The
+   ConvexAdam and FireANTs engines, driven by the IMPACT metric or by intensities.
+   `ConvexAdam#composite` runs the ConvexAdam coarse and fine passes on MIND features through `itk-impact`. The
    card under the list describes it. **Fixed image** is the CT, **Moving image** the MRI (the
    panel picks two distinct volumes by itself); the masks are optional and restrict the metric
    region.
 
    ![Preset chosen, fixed and moving images set](Screenshots/tutorial/03-preset.jpg)
 
-4. **Ensemble and uncertainty.** **Ensemble with** adds further presets, here *FireANTs SyN,
-   anatomix + MIND features* and *elastix + IMPACT (Static)*: one deformable preset per engine,
+4. **Ensemble and uncertainty.** The **Presets** chips add further presets, here `FireANTs#anatomix`
+   and `Elastix#impact_static`: one deformable preset per engine,
    all three driven by IMPACT. The **Presets** row shows the three chips; all will run and their
    displacement fields will be averaged into one transform. **TTA** is the number of flipped
    registrations each preset averages. **Uncertainty** keeps the displacement field of each preset
@@ -77,9 +77,11 @@ module works the same way.
    ![Target registration error](Screenshots/tutorial/08-landmarks.jpg)
 
 9. **Estimate uncertainty without reference.** Tab *No reference (Uncertainty)*: the displacement
-   fields kept at step 5 are preselected (the `RegistrationDVFSequence` node). Run: the spread of
-   the three fields, voxel by voxel, gives the `Uncertainty` map in millimetres and its mean as a
-   metric. Where the engines disagree is where the result deserves a look. Outside the body, where
+   fields kept at step 5 are preselected (the `InferenceStack` sequence, one item per preset). On the
+   *Map* tab, Run: the spread of the three fields, voxel by voxel, gives the `Uncertainty` map in
+   millimetres, its mean and its 95th percentile. The *Landmarks*, *Calibration* and *Segmentation*
+   tabs take fixed landmarks, both landmark sets or the moving segmentation, and measure the spread
+   of the landmarks, its correlation with their error, or the disagreement of the propagations. Where the engines disagree is where the result deserves a look. Outside the body, where
    there is nothing to align, each engine extrapolates its own way and the spread is large.
 
    ![Uncertainty map](Screenshots/tutorial/09-uncertainty.jpg)
@@ -98,8 +100,8 @@ synthetic CT against its planning CT), which this case does not have.
 From the command line, the same run is:
 
 ```bash
-impact-reg-konfai register ConvexAdam_Composite FireANTs_Anatomix Elastix_IMPACT_Static -f CT.mha -m MRI.mha -o Output --gpu 0 --uncertainty
-impact-reg-konfai eval --preset ConvexAdam_Composite --transform Output/P000/Transform.h5 --gt-fixed-seg CT_organs.nii.gz --gt-moving-seg MRI_organs.nii.gz -o Evaluation --gpu 0
-impact-reg-konfai eval --preset ConvexAdam_Composite --transform Output/P000/Transform.h5 --gt-fixed-fid CT_landmarks.fcsv --gt-moving-fid MRI_landmarks.fcsv -o Evaluation --gpu 0
-impact-reg-konfai uncertainty --preset ConvexAdam_Composite --dvf Output/P000/Ensemble/*.h5 -o Uncertainty --gpu 0
+impact-reg-konfai register ConvexAdam#composite FireANTs#anatomix Elastix#impact_static -f CT.mha -m MRI.mha -o Output --gpu 0 --uncertainty
+impact-reg-konfai eval --transform Output/P000/Transform.h5 --gt-fixed-seg CT_organs.nii.gz --gt-moving-seg MRI_organs.nii.gz -o Evaluation --gpu 0
+impact-reg-konfai eval --transform Output/P000/Transform.h5 --gt-fixed-fid CT_landmarks.fcsv --gt-moving-fid MRI_landmarks.fcsv -o Evaluation --gpu 0
+impact-reg-konfai uncertainty -i Output/P000/InferenceStack.mha --gt-moving-seg MRI_organs.nii.gz -o Uncertainty --gpu 0
 ```

@@ -63,7 +63,7 @@
   Pick the fixed and the moving image in the scene (DICOM, NIfTI, NRRD, MHA), and a fixed or a moving mask to restrict the metric region. Click Run.
 
 - **Ensembles**
-  Add presets with *Ensemble with*: all of them run and their displacement fields are averaged into one transform. Tick *Uncertainty* to keep each field for the QA without reference.
+  Add presets with the *Presets* chips (`ENGINE#preset`, of any engine): all of them run and their displacement fields are averaged into one transform. Tick *Uncertainty* to keep the ensemble's stack, every preset's field, for the QA without reference.
 
 - **Results in the scene**
   The moved image is loaded as a new volume over the fixed one, and the transform as a transform node that applies to any other node (segmentations, markups) through the Transforms module.
@@ -72,33 +72,33 @@
   *Image*: the moving image is warped with the transform and compared with a reference image in the fixed frame, MAE inside an optional mask and its map. *Segmentation*: Dice between the fixed segmentation and the warped moving one, and a map of where they disagree. *Landmarks*: target registration error on paired fiducials.
 
 - **Uncertainty without reference**
-  After an ensemble run, the spread of the per-preset displacement fields gives a voxel-wise uncertainty map in millimetres, and its mean as a metric.
+  After an ensemble run, the ensemble's stack is measured tab by tab: the spread of the displacement vectors (a map in millimetres, its mean and 95th percentile); with fixed landmarks, their spread through every preset, and with the moving ones too, whether that spread predicts the error; with a moving segmentation, how its propagations disagree.
 
 - **Advanced settings**
   The gear next to Run lists the parameters each preset exposes (iterations, grid spacing, learning rate and so on). Changed values are forwarded to the engine, and *Save as local app* keeps them as a new preset.
 
 - **Local GPU or CPU**
-  The registration runs in a separate process on the selected device; the RAM and VRAM gauges follow it. With a remote server selected, each preset runs on that server and the moved image, the evaluation and the uncertainty are computed on this machine; the server must list the presets in its `--apps`, as `impact-reg-konfai` names them (`VBoussot/ImpactReg@<revision>:<preset>`).
+  The registration runs in a separate process on the selected device; the RAM and VRAM gauges follow it. With a remote server selected, each preset runs on that server, and so does the uncertainty, as any app's does; the moved image and the evaluation are computed on this machine. The server must list the engine apps in its `--apps`, as `impact-reg-konfai` names them (`VBoussot/ImpactReg@<revision>:<engine>`, e.g. `…:ConvexAdam`).
   The CLI keeps a large pair out of core (whole on a grid sized to the memory, then native tiles for the presets that declare them), but Slicer holds what it shows: the moved image and, for uncertainty, every preset's field as a dense volume. Register a very large pair with `impact-reg-konfai` and open a coarser level of the result.
 
 ---
 
 ## 🧩 Presets
 
-| Preset in Slicer | App | Pair | Engine | What it does |
-|------------------|-----|------|--------|--------------|
-| Generic Rigid | `Generic_Rigid` | any | elastix | Rigid alignment, mutual information, multi-resolution |
-| Generic Rigid + BSpline | `Generic_Rigid_BSpline` | any | elastix | Rigid, then B-spline deformable refinement |
-| elastix + IMPACT (Static), TotalSegmentator M730 | `Elastix_IMPACT_Static` | MRI / CT | elastix + IMPACT | B-spline driven by a deep TotalSegmentator layer and MIND, features extracted once on the whole image |
-| elastix + IMPACT (Jacobian), TotalSegmentator M730 | `Elastix_IMPACT_Jacobian` | CT / CBCT | elastix + IMPACT | B-spline driven by early TotalSegmentator layers, differentiated through the network |
-| ConvexAdam Coarse (MIND) | `ConvexAdam_Coarse` | any | itk-impact | Linear pre-alignment, then the global coarse coupled-convex initialisation on MIND features |
-| ConvexAdam (MIND) | `ConvexAdam_Composite` | any | itk-impact | The same coarse pass followed by the Adam instance-optimisation refinement |
-| ConvexAdam, MIND + TotalSegmentator MR early layer | `ConvexAdam_IMPACT_CBCT` | CT / CBCT | itk-impact + IMPACT | ConvexAdam (MIND) with the second layer of TotalSegmentator MR added |
-| ConvexAdam, MIND + TotalSegmentator MR segmentation | `ConvexAdam_IMPACT_MRCT` | MRI / CT | itk-impact + IMPACT | ConvexAdam's coarse search on MIND and the segmentation head of TotalSegmentator MR |
-| FireANTs (SyN) | `FireANTs_SyN` | any | FireANTs | Rigid, affine, then SyN diffeomorphic registration on the GPU |
-| FireANTs (IMPACT) | `FireANTs_IMPACT` | CT / CBCT | FireANTs + IMPACT | Rigid, affine, then SyN driven by IMPACT on early TotalSegmentator layers |
-| FireANTs SyN, TotalSegmentator MR decoder + MIND | `FireANTs_IMPACT_MRCT` | MRI / CT | FireANTs + IMPACT | FireANTs (SyN) driven by the last decoder layer of TotalSegmentator MR and MIND, features extracted once |
-| FireANTs SyN, anatomix + MIND features | `FireANTs_Anatomix` | any | FireANTs + IMPACT | The anatomix pipeline: anatomix and MIND features extracted once and registered as feature volumes |
+| Preset | Pair | Engine | What it does |
+|--------|------|--------|--------------|
+| `Elastix#rigid` | any | elastix | Rigid alignment, mutual information, multi-resolution |
+| `Elastix#rigid_bspline` | any | elastix | Rigid, then B-spline deformable refinement |
+| `Elastix#impact_static` | MRI / CT | elastix + IMPACT | B-spline driven by a deep TotalSegmentator layer and MIND, features extracted once on the whole image |
+| `Elastix#impact_jacobian` | CT / CBCT | elastix + IMPACT | B-spline driven by early TotalSegmentator layers, differentiated through the network |
+| `ConvexAdam#coarse` | any | itk-impact | Linear pre-alignment, then the global coarse coupled-convex initialisation on MIND features |
+| `ConvexAdam#composite` | any | itk-impact | The same coarse pass followed by the Adam instance-optimisation refinement |
+| `ConvexAdam#impact_cbct` | CT / CBCT | itk-impact + IMPACT | The composite preset (MIND) with the second layer of TotalSegmentator MR added |
+| `ConvexAdam#impact_mrct` | MRI / CT | itk-impact + IMPACT | ConvexAdam's coarse search on MIND and the segmentation head of TotalSegmentator MR |
+| `FireANTs#syn` | any | FireANTs | Rigid, affine, then SyN diffeomorphic registration on the GPU |
+| `FireANTs#impact` | CT / CBCT | FireANTs + IMPACT | Rigid, affine, then SyN driven by IMPACT on early TotalSegmentator layers |
+| `FireANTs#impact_mrct` | MRI / CT | FireANTs + IMPACT | The syn preset driven by the last decoder layer of TotalSegmentator MR and MIND, features extracted once |
+| `FireANTs#anatomix` | any | FireANTs + IMPACT | The anatomix pipeline: anatomix and MIND features extracted once and registered as feature volumes |
 
 The FireANTs presets install `fireants` on first use and need a GPU; FireANTs is distributed under its own license, shipped in each preset's `NOTICE`. The elastix + IMPACT presets download the elastix-IMPACT binary built for the CUDA of the installed PyTorch.
 
@@ -108,11 +108,11 @@ The FireANTs presets install `fireants` on first use and need a GPU; FireANTs is
 
 | 🧪 Scenario | 🔧 Preset | 💡 Rationale |
 |-------------|-----------|--------------|
-| **MRI to CT** | **ConvexAdam (MIND)** or **FireANTs SyN, anatomix + MIND features** | The best overlap on the walkthrough case. ConvexAdam takes under a minute and starts from any position. |
-| **MRI to CT, rigidly aligned** (planning workflows, challenge pairs) | **elastix + IMPACT (Static)** | The MR/CT configuration of the IMPACT study: a deep TotalSegmentator layer and MIND, features extracted once. A B-spline without a rigid stage: start from an aligned pair. |
-| **CT to CBCT**, adaptive radiotherapy | **elastix + IMPACT (Jacobian)** | The CT/CBCT configuration of the IMPACT study: early TotalSegmentator layers differentiated through the network, where texture carries the alignment. Several minutes per pair. |
-| **Same modality**, follow-up CT or MRI | **Generic Rigid + BSpline** or **FireANTs (SyN)** | Intensity metrics are enough when the contrast is the same. |
-| **An initial alignment** before another preset | **Generic Rigid**, or **ConvexAdam Coarse** for a coarse deformable one | Then select the moved image as the moving image of a second run, for example with an elastix + IMPACT preset. |
+| **MRI to CT** | **`ConvexAdam#composite`** or **`FireANTs#anatomix`** | The best overlap on the walkthrough case. ConvexAdam takes under a minute and starts from any position. |
+| **MRI to CT, rigidly aligned** (planning workflows, challenge pairs) | **`Elastix#impact_static`** | The MR/CT configuration of the IMPACT study: a deep TotalSegmentator layer and MIND, features extracted once. A B-spline without a rigid stage: start from an aligned pair. |
+| **CT to CBCT**, adaptive radiotherapy | **`Elastix#impact_jacobian`** | The CT/CBCT configuration of the IMPACT study: early TotalSegmentator layers differentiated through the network, where texture carries the alignment. Several minutes per pair. |
+| **Same modality**, follow-up CT or MRI | **`Elastix#rigid_bspline`** or **`FireANTs#syn`** | Intensity metrics are enough when the contrast is the same. |
+| **An initial alignment** before another preset | **`Elastix#rigid`**, or **`ConvexAdam#coarse`** for a coarse deformable one | Then select the moved image as the moving image of a second run, for example with an elastix + IMPACT preset. |
 | **Uncertainty**, any pair | two or more deformable presets, *Uncertainty* ticked | The disagreement between engines maps where the result should be checked. Ensemble presets of the same kind: a rigid result averaged with deformable ones measures nothing. |
 
 ---
@@ -124,12 +124,12 @@ Abdomen MRI/CT pair 1ABA005 of SynthRAD2025 (CT 465 × 367 × 91 voxels of 1 × 
 | MRI to CT | Time | Dice | TRE (mm) |
 |-----------|-----:|-----:|---------:|
 | *As aligned by the challenge* | | 0.65 | 11.2 |
-| ConvexAdam (MIND) | 47 s | 0.83 | 5.3 |
-| FireANTs SyN, anatomix + MIND features | 4 min 42 s | 0.83 | 5.6 |
-| FireANTs (SyN) | 1 min 18 s | 0.82 | 6.4 |
-| Generic Rigid + BSpline | 22 s | 0.81 | 6.5 |
-| elastix + IMPACT (Static) | 2 min 8 s | 0.77 | 9.2 |
-| **Ensemble** of ConvexAdam, anatomix and elastix + IMPACT, as in the video | 7 min 3 s | **0.83** | **6.1** |
+| `ConvexAdam#composite` | 47 s | 0.83 | 5.3 |
+| `FireANTs#anatomix` | 4 min 42 s | 0.83 | 5.6 |
+| `FireANTs#syn` | 1 min 18 s | 0.82 | 6.4 |
+| `Elastix#rigid_bspline` | 22 s | 0.81 | 6.5 |
+| `Elastix#impact_static` | 2 min 8 s | 0.77 | 9.2 |
+| **Ensemble** of `ConvexAdam#composite`, `FireANTs#anatomix` and `Elastix#impact_static`, as in the video | 7 min 3 s | **0.83** | **6.1** |
 
 One case: validate the presets on your own data before drawing conclusions from this table.
 
@@ -140,7 +140,7 @@ One case: validate the presets on your own data before drawing conclusions from 
 1. Install **3D Slicer ≥ 5.10**, then from the **Extensions Manager** the **PyTorch** extension (SlicerPyTorch) and **ImpactReg**. The **KonfAI** extension is installed with it.
 2. Restart Slicer and open **Impact Reg** (category **Registration**). On the first opening, `impact-reg-konfai` is installed into Slicer's Python with the matching `konfai` and `konfai-apps`. The elastix-IMPACT binary, `itk-impact`, `fireants` and the feature models are downloaded the first time a preset needs them.
 3. Load the two images (**DICOM** module, or drag and drop NIfTI / NRRD / MHA files).
-4. In **Inference**, choose the preset, the **fixed image** and the **moving image** (and masks if you have them), add presets with **Ensemble with**, tick **Uncertainty** if you will need the QA without reference, click **Run**. The moved image is overlaid on the fixed image and the transform is selected in the evaluation panel.
+4. In **Inference**, choose the preset, the **fixed image** and the **moving image** (and masks if you have them), add presets with the **Presets** chips, tick **Uncertainty** if you will need the QA without reference, click **Run**. The moved image is overlaid on the fixed image and the transform is selected in the evaluation panel.
 5. Open **Evaluation**:
    - **With reference**, tab **Image**: a reference image in the fixed frame, the moving image, an optional mask, **Run**: the MAE inside the mask, and `MAE_map` in the image list.
    - Tab **Segmentation**: the fixed and the moving label maps, **Run**: the mean Dice over the labels, and `Seg_MAE_map` in the image list.
@@ -158,25 +158,25 @@ The same presets run outside Slicer:
 
 ```bash
 pip install impact-reg-konfai
-impact-reg-konfai register ConvexAdam_Composite FireANTs_Anatomix Elastix_IMPACT_Static -f ct.mha -m mr.mha -o Output --gpu 0 --uncertainty
-impact-reg-konfai eval --preset Elastix_IMPACT_Static --transform Output/P000/Transform.h5 -f mr_reference.mha -m mr.mha --mask body.mha -o Evaluation --gpu 0
-impact-reg-konfai eval --preset Elastix_IMPACT_Static --transform Output/P000/Transform.h5 --gt-fixed-fid ct.fcsv --gt-moving-fid mr.fcsv -o Evaluation --gpu 0
-impact-reg-konfai uncertainty --preset Elastix_IMPACT_Static --dvf Output/P000/Ensemble/*.h5 -o Uncertainty --gpu 0
+impact-reg-konfai register ConvexAdam#composite FireANTs#anatomix Elastix#impact_static -f ct.mha -m mr.mha -o Output --gpu 0 --uncertainty
+impact-reg-konfai eval --transform Output/P000/Transform.h5 -f mr_reference.mha -m mr.mha --mask body.mha -o Evaluation --gpu 0
+impact-reg-konfai eval --transform Output/P000/Transform.h5 --gt-fixed-fid ct.fcsv --gt-moving-fid mr.fcsv -o Evaluation --gpu 0
+impact-reg-konfai uncertainty -i Output/P000/InferenceStack.mha --gt-fixed-fid ct.fcsv --gt-moving-fid mr.fcsv -o Uncertainty --gpu 0
 ```
 
 or with the generic runner, one preset at a time:
 
 ```bash
-konfai-apps infer VBoussot/ImpactReg:ConvexAdam_Composite -i ct.mha -i mr.mha -o Output --gpu 0
+konfai-apps infer VBoussot/ImpactReg:ConvexAdam#composite -i ct.mha -i mr.mha -o Output --gpu 0
 ```
 
-`register` writes the moved image, the transform (`Transform.h5`) and, with `--uncertainty`, one transform per preset under `Ensemble/`. Give the presets the **raw images**; masks are optional and restrict the metric.
+`register` writes the moved image, the transform (`Transform.h5`) and, with `--uncertainty`, the ensemble's stack (`InferenceStack.mha`: every preset's field, their count in its header) that `uncertainty -i` reads. Give the presets the **raw images**; masks are optional and restrict the metric.
 
 ---
 
 ## 🧩 What the extension is made of
 
-The module registers one app template, **Registration**, for the apps of `VBoussot/ImpactReg` on the `KonfAI` facade of the KonfAI extension (API version 2). Two panels are subclassed: the inference panel drives `impact-reg-konfai register` and turns the checkpoint chips into a preset selector, the QA panel drives `impact-reg-konfai eval` and `impact-reg-konfai uncertainty` and exports the raw nodes, since the CLI warps the moving data itself. The app list, the process manager, the log, the device row and the gauges come from [SlicerKonfAI](https://github.com/vboussot/SlicerKonfAI).
+The module registers one app template, **Registration**, for the apps of `VBoussot/ImpactReg` on the `KonfAI` facade of the KonfAI extension (API version 2). Two panels are subclassed: the inference panel drives `impact-reg-konfai register` with the presets of SlicerKonfAI's preset chips, the QA panel drives `impact-reg-konfai eval` and exports the raw nodes, since the CLI warps the moving data itself; the uncertainty tabs are the engine apps' own, run through konfai-apps. The app list, the process manager, the log, the device row and the gauges come from [SlicerKonfAI](https://github.com/vboussot/SlicerKonfAI).
 
 Run from source:
 
