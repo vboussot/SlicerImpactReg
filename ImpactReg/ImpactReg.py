@@ -336,7 +336,7 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
         else:
             flags = EVALUATION_FLAGS.get(evaluation_key.evaluation_file)
             if flags is None:
-                super().evaluation(remote_server, devices)
+                super().evaluation(None, devices)  # here too, as the log above says
                 return
             # Manifest order: the Transform entry (it replaces the panel's transform), the fixed side, the moving
             # side, Mask_* the evaluation mask.
