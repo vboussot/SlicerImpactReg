@@ -43,11 +43,8 @@ from slicer.ScriptedLoadableModule import ScriptedLoadableModule, ScriptedLoadab
 
 IMPACT_REG_REPO = "VBoussot/ImpactReg"
 
-# Map each evaluation config of the engine apps to the fixed/moving flags of `impact-reg-konfai eval`: in the
-# declared order, the Transform entry is --transform, then the fixed side, the moving side, and Mask_* the mask.
-# A config impact-reg-konfai does not run as a tab runs as any app's evaluation, konfai-apps eval: the inverse
-# consistency (a second transform), and the measures without reference (the transform, and the fixed image a
-# B-spline is sampled on).
+# The flags of `impact-reg-konfai eval` per evaluation config: in the declared order, Transform maps to --transform,
+# then fixed, moving, and Mask_* to --mask. A config without a tab here runs through konfai-apps eval.
 EVALUATION_FLAGS = {
     "Evaluation_with_images.yml": ("-f", "-m"),
     "Evaluation_with_seg.yml": ("--gt-fixed-seg", "--gt-moving-seg"),
@@ -328,7 +325,7 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
         else:
             flags = EVALUATION_FLAGS.get(evaluation_key.evaluation_file)
             if flags is None:
-                super().evaluation(None, devices)  # here too, as the log above says
+                super().evaluation(None, devices)
                 return
             # Manifest order: the Transform entry (it replaces the panel's transform), the fixed side, the moving
             # side, Mask_* the evaluation mask.
