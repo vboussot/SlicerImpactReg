@@ -453,7 +453,7 @@ class ImpactRegAppTemplateWidget(KonfAIAppTemplateWidget):
             if app is None:
                 continue
             name = app.get_name().split(":")[-1]
-            presets = app.get_presets() if hasattr(app, "get_presets") else {}
+            presets = app.get_presets()
             names += [f"{name}#{preset}" for preset in presets] or [name]
         return names
 
