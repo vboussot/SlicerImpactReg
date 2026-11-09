@@ -169,14 +169,6 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
         if app is not None:
             self._seed_presets(app)
 
-    def on_advanced_clicked(self):
-        """The Advanced dialog may save a new preset of the main app, then chosen: the ensemble is reseeded with it."""
-        before = self._preset
-        super().on_advanced_clicked()
-        app = self.template.ui.appComboBox.currentData
-        if app is not None and self._preset != before:
-            self._seed_presets(app)
-
     def _extra_node(self, key: str):
         """Return the node of the extra input selector declared under ``key`` in app.json (or None)."""
         entry = self._extra_input_selectors.get(key)
