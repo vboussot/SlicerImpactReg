@@ -43,8 +43,8 @@ from slicer.ScriptedLoadableModule import ScriptedLoadableModule, ScriptedLoadab
 
 IMPACT_REG_REPO = "VBoussot/ImpactReg"
 
-# Map each evaluation config of the preset bundles to the fixed/moving flags of
-# `impact-reg-konfai eval` (the first declared input is the fixed side, the second the moving side).
+# The flags of `impact-reg-konfai eval` per evaluation config: in the declared order, Transform maps to --transform,
+# then fixed, moving, and Mask_* to --mask. A config without a tab here runs through konfai-apps eval.
 EVALUATION_FLAGS = {
     "Evaluation_with_images.yml": ("-f", "-m"),
     "Evaluation_with_seg.yml": ("--gt-fixed-seg", "--gt-moving-seg"),
@@ -147,9 +147,24 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
         # The app selector picks the main preset: it seeds the ensemble (the "Presets" chips) and drives
         # evaluation. Add more presets with the "Ensemble with" combo below; switching the main reseeds
         # the ensemble to it. The CLI averages the displacement fields of all the selected presets.
+        self._seed_presets(app)
+
+    def _seed_presets(self, app) -> None:
+        """Seed the ensemble with the main app's chosen preset (under the app selector), its base config when none is
+        chosen, as the selector shows it."""
         presets = self.template.get_preset_names()
-        current = app.get_name().split(":")[-1]
-        self.chip_selector.update(presets, presets, [current] if current in presets else presets[:1])
+        name = app.get_name().split(":")[-1]
+        chosen = f"{name}#{self._preset}" if self._preset else name
+        if chosen not in presets:
+            presets.insert(0, chosen)
+        self.chip_selector.update(presets, presets, [chosen])
+
+    def set_preset(self, preset: str | None) -> None:
+        """The preset chosen under the app selector is the main one: the ensemble is reseeded with it."""
+        super().set_preset(preset)
+        app = self.template.ui.appComboBox.currentData
+        if app is not None:
+            self._seed_presets(app)
 
     def _extra_node(self, key: str):
         """Return the node of the extra input selector declared under ``key`` in app.json (or None)."""
@@ -310,21 +325,27 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
         else:
             flags = EVALUATION_FLAGS.get(evaluation_key.evaluation_file)
             if flags is None:
-                self._update_logs(
-                    f"[ImpactReg] Unsupported evaluation config '{evaluation_key.evaluation_file}'.", False
-                )
-                self.template.set_running(False)
+                super().evaluation(None, devices)
                 return
-            # Manifest order: first entry = fixed side, second = moving side, Mask_* = evaluation mask.
-            items = list(self._evaluation_input_selectors[evaluation_key].items())
-            for position, (key, (_required, selector)) in enumerate(items):
-                file_name = self._export_node(selector.currentNode(), key)
+            # Manifest order: the Transform entry (it replaces the panel's transform), the fixed side, the moving
+            # side, Mask_* the evaluation mask.
+            sides = iter(flags)
+            for key, (_required, selector) in self._evaluation_input_selectors[evaluation_key].items():
+                node = selector.currentNode()
+                if node is not None and node.IsA("vtkMRMLTransformNode"):
+                    slicer.util.saveNode(node, str(self._work_dir / "Transform.h5"))
+                    if "--transform" not in args:
+                        args += ["--transform", "Transform.h5"]
+                    continue
+                file_name = self._export_node(node, key)
                 if file_name is None:
                     continue
-                if position < 2:
-                    args += [flags[position], file_name]
-                elif key.startswith("Mask"):
+                if key.startswith("Mask"):
                     args += ["--mask", file_name]
+                else:
+                    flag = next(sides, None)
+                    if flag is not None:
+                        args += [flag, file_name]
 
         if devices:
             args += ["--gpu"] + devices
@@ -412,11 +433,18 @@ class ImpactRegAppTemplateWidget(KonfAIAppTemplateWidget):
     QA_PANEL_CLASS = RegistrationQAPanel
 
     def get_preset_names(self) -> list[str]:
-        """Return the preset names (the apps listed in the selection combo)."""
+        """Every preset the apps of the selection combo offer, as ``APP#PRESET`` (``impact-reg-konfai register``
+        takes them so); an app that declares none by its name alone."""
         combo = self.ui.appComboBox
-        return [
-            combo.itemData(i).get_name().split(":")[-1] for i in range(combo.count) if combo.itemData(i) is not None
-        ]
+        names: list[str] = []
+        for index in range(combo.count):
+            app = combo.itemData(index)
+            if app is None:
+                continue
+            name = app.get_name().split(":")[-1]
+            presets = app.get_presets()
+            names += [f"{name}#{preset}" for preset in presets] or [name]
+        return names
 
 
 class ImpactRegWidget(ScriptedLoadableModuleWidget):
