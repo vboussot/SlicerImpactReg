@@ -327,7 +327,7 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
             slicer.util.saveNode(transform_node, str(self._work_dir / "Transform.h5"))
             args += ["--transform", "Transform.h5"]
 
-        evaluation_key = self._current_evaluation_key()
+        evaluation_key = self._current_key(self._evaluation_tabs, self._evaluation_input_selectors)
         if evaluation_key is None:
             # Static fallback: reference = fixed, input = moving (image modality).
             fixed_flag, moving_flag = EVALUATION_FLAGS["Evaluation_with_images.yml"]
