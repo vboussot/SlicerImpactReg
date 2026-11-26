@@ -98,8 +98,8 @@ synthetic CT against its planning CT), which this case does not have.
 From the command line, the same run is:
 
 ```bash
-impact-reg-konfai register ConvexAdam_Composite FireANTs_Anatomix Elastix_IMPACT_Static -f CT.mha -m MRI.mha -o Output --gpu 0 --uncertainty
-impact-reg-konfai eval --preset ConvexAdam_Composite --transform Output/P000/Transform.h5 --gt-fixed-seg CT_organs.nii.gz --gt-moving-seg MRI_organs.nii.gz -o Evaluation --gpu 0
-impact-reg-konfai eval --preset ConvexAdam_Composite --transform Output/P000/Transform.h5 --gt-fixed-fid CT_landmarks.fcsv --gt-moving-fid MRI_landmarks.fcsv -o Evaluation --gpu 0
-impact-reg-konfai uncertainty --preset ConvexAdam_Composite --dvf Output/P000/Ensemble/*.h5 -o Uncertainty --gpu 0
+impact-reg-konfai register ConvexAdam#composite FireANTs#anatomix Elastix#impact_static -f CT.mha -m MRI.mha -o Output --gpu 0 --uncertainty
+impact-reg-konfai eval --transform Output/P000/Transform.h5 --gt-fixed-seg CT_organs.nii.gz --gt-moving-seg MRI_organs.nii.gz -o Evaluation --gpu 0
+impact-reg-konfai eval --transform Output/P000/Transform.h5 --gt-fixed-fid CT_landmarks.fcsv --gt-moving-fid MRI_landmarks.fcsv -o Evaluation --gpu 0
+impact-reg-konfai uncertainty -i Output/P000/InferenceStack.mha -o Uncertainty --gpu 0
 ```
