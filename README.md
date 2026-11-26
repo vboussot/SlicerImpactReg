@@ -79,7 +79,9 @@
 
 - **Local GPU or CPU**
   The registration runs in a separate process on the selected device; the RAM and VRAM gauges follow it. With a remote server selected, each preset runs on that server, and so does the uncertainty, as any app's does; the moved image and the evaluation are computed on this machine. The server must list the engine apps in its `--apps`, as `impact-reg-konfai` names them (`VBoussot/ImpactReg@<revision>:<engine>`, e.g. `…:ConvexAdam`).
-  The CLI keeps a large pair out of core (whole on a grid sized to the memory, then native tiles for the presets that declare them), but Slicer holds what it shows: the moved image and, for uncertainty, every preset's field as a dense volume. Register a very large pair with `impact-reg-konfai` and open a coarser level of the result.
+
+- **Large images**
+  A pair too large for the device registers out of core. *Large images* picks the route: `auto` (the default) registers whole where the pair fits the device and sampled where it does not, `whole` refuses a pair that does not fit, `tiled` registers on the pair resampled to fit and then runs the deformable stage on native tiles, `sampled` never resamples the pair nor holds it whole, reading it by boxes. For the sampled mode, *Samples* is the number drawn anew at each iteration, *Box* the side of a box in voxels and *Visits* how often every box is visited. Slicer still holds what it shows, the moved image and, for uncertainty, every preset's field as a dense volume: register a pair larger than this machine's memory with `impact-reg-konfai` and open a coarser level of the result.
 
 ---
 
