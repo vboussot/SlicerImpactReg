@@ -80,8 +80,8 @@
 - **Local GPU or CPU**
   The registration runs in a separate process on the selected device; the RAM and VRAM gauges follow it. With a remote server selected, each preset runs on that server, and so does the uncertainty, as any app's does; the moved image and the evaluation are computed on this machine. The server must list the engine apps in its `--apps`, as `impact-reg-konfai` names them (`VBoussot/ImpactReg@<revision>:<engine>`, e.g. `…:ConvexAdam`).
 
-- **Large images**
-  A pair too large for the device registers out of core. *Large images* picks the route: `auto` (the default) registers whole where the pair fits the device and sampled where it does not, `whole` refuses a pair that does not fit, `tiled` registers on the pair resampled to fit and then runs the deformable stage on native tiles, `sampled` never resamples the pair nor holds it whole, reading it by boxes. For the sampled mode, *Samples* is the number drawn anew at each iteration, *Box* the side of a box in voxels and *Visits* how often every box is visited. Slicer still holds what it shows, the moved image and, for uncertainty, every preset's field as a dense volume: register a pair larger than this machine's memory with `impact-reg-konfai` and open a coarser level of the result.
+- **Image processing**
+  *Automatic* processes the whole pair if it fits in device memory and uses *Sampled blocks* otherwise. *Whole images* requires the pair to fit at full resolution. *Tiled refinement* registers at reduced resolution, then refines at full resolution in tiles for presets that support it. *Sampled blocks* reads blocks at full resolution as needed. *Samples per iteration* uses the engine default unless you enter a value. *Block size* is the side length in voxels (64 by default). *Passes per block* is the average number of times a block is processed, using the stage's configured iteration count by default. Slicer still holds what it shows, the moved image and, for uncertainty, every preset's field as a dense volume: register a pair larger than this machine's memory with `impact-reg-konfai` and open a coarser level of the result.
 
 ---
 

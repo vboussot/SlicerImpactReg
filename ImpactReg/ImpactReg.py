@@ -36,15 +36,12 @@ from KonfAI import (
     _is_reload_setup,
     install_package,
 )
-from qt import QComboBox, QFormLayout, QHBoxLayout, QLabel, QSpinBox, QWidget
+from qt import QComboBox, QFormLayout, QLabel, QSpinBox, QWidget
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import ScriptedLoadableModule, ScriptedLoadableModuleWidget
 
 IMPACT_REG_REPO = "VBoussot/ImpactReg"
-
-# How `impact-reg-konfai register --out-of-core` registers a pair; auto is its default.
-ROUTES = ("auto", "whole", "tiled", "sampled")
 
 # The flags of `impact-reg-konfai eval` per evaluation config: in the declared order, Transform maps to --transform,
 # then fixed, moving, and Mask_* to --mask. A config without a tab here runs through konfai-apps eval.
@@ -130,41 +127,37 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
     def _add_large_image_row(self) -> None:
         """The row of ``register``'s options for a pair too large for the device, below the sampling row."""
         self._route = QComboBox()
-        self._route.addItems(list(ROUTES))
+        for key, label in (
+            ("auto", _("Automatic")),
+            ("whole", _("Whole images")),
+            ("tiled", _("Tiled refinement")),
+            ("sampled", _("Sampled blocks")),
+        ):
+            self._route.addItem(label, key)
         self._route.toolTip = _(
-            "auto: whole where the pair fits the device, sampled where it does not. whole: in one piece on its "
-            "native grid, refused if it does not fit. tiled: resampled to fit, then the deformable stage on native "
-            "tiles (presets that declare a tile pass). sampled: never resampled nor held whole: the images are read "
-            "by boxes."
+            "Automatic uses whole images if they fit in device memory and sampled blocks otherwise. "
+            "Whole images requires both images to fit at full resolution. "
+            "Tiled refinement starts at reduced resolution and refines at full resolution in tiles when the preset supports it. "
+            "Sampled blocks reads blocks at full resolution as needed."
         )
         self._samples = QSpinBox()
         self._samples.setRange(0, 2**31 - 1)
         self._samples.setSingleStep(65536)
-        self._samples.setSpecialValueText(_("engine's"))
-        self._samples.toolTip = _("Samples each iteration of the sampled mode draws anew (engine's: its own default).")
+        self._samples.setSpecialValueText(_("Engine default"))
+        self._samples.toolTip = _("Number of samples drawn at each iteration. Engine default uses the registration engine’s value.")
         self._region = QSpinBox()
         self._region.setRange(8, 1024)
         self._region.setSingleStep(8)
         self._region.setValue(64)
         self._region.setSuffix(" vx")
-        self._region.toolTip = _("Side of a box of the sampled mode, in voxels.")
-        self._visits = QSpinBox()
-        self._visits.setRange(0, 100000)
-        self._visits.setSpecialValueText(_("stage's"))
-        self._visits.toolTip = _("Visits of every box in the sampled mode (stage's: its own iterations).")
-        row = QWidget()
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        for label, widget in (
-            (None, self._route),
-            (_("Samples"), self._samples),
-            (_("Box"), self._region),
-            (_("Visits"), self._visits),
-        ):
-            if label is not None:
-                layout.addWidget(QLabel(label))
-            layout.addWidget(widget)
-        self._route.connect("currentTextChanged(QString)", self._on_route_changed)
+        self._region.toolTip = _("Side length of a sampled block in voxels.")
+        self._passes = QSpinBox()
+        self._passes.setRange(0, 100000)
+        self._passes.setSpecialValueText(_("Stage default"))
+        self._passes.toolTip = _(
+            "Average number of times each block is processed in sampled mode. "
+            "Stage default uses the iteration count configured for each registration stage."
+        )
         form = self.ui.label_stochastic.parentWidget().layout()
         sampling = next(
             index
@@ -173,21 +166,34 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
             and item.widget() is not None
             and item.widget().objectName == "label_stochastic"
         )
-        form.insertRow(sampling + 1, QLabel(_("Large images")), row)
+        form.insertRow(sampling + 1, QLabel(_("Image processing")), self._route)
+        self._sampled_fields = (
+            (QLabel(_("Samples per iteration")), self._samples),
+            (QLabel(_("Block size")), self._region),
+            (QLabel(_("Passes per block")), self._passes),
+        )
+        for index, (label, widget) in enumerate(self._sampled_fields, start=sampling + 2):
+            form.insertRow(index, label, widget)
+        self._route.currentIndexChanged.connect(self._on_route_changed)
+        self._on_route_changed()
 
-    def _on_route_changed(self, route: str) -> None:
-        """The sampled mode's options apply where a pair may register sampled."""
-        for widget in (self._samples, self._region, self._visits):
-            widget.setEnabled(route in ("auto", "sampled"))
+    def _on_route_changed(self) -> None:
+        """Show sampling settings when the selected mode can use them."""
+        sampled = self._route.currentData in ("auto", "sampled")
+        for label, widget in self._sampled_fields:
+            label.setVisible(sampled)
+            widget.setVisible(sampled)
 
     def _large_image_args(self) -> list[str]:
-        """``register``'s large-image options as the row sets them."""
-        route = self._route.currentText
+        """The command-line options selected in the image processing controls."""
+        route = self._route.currentData
         args = ["--out-of-core", route]
         if route in ("auto", "sampled"):
             args += ["--region-size", str(self._region.value)]
-            args += ["--samples", str(self._samples.value)] if self._samples.value else []
-            args += ["--epochs", str(self._visits.value)] if self._visits.value else []
+            if self._samples.value:
+                args += ["--samples", str(self._samples.value)]
+            if self._passes.value:
+                args += ["--epochs", str(self._passes.value)]
         return args
 
     def _extra_node(self, key: str):
