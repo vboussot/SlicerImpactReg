@@ -18,14 +18,11 @@
 
 The module reuses the generic SlicerKonfAI app widget (selection / inference / QA panels)
 and only substitutes the two panels that drive a CLI: registration runs
-``impact-reg-konfai register`` (the checkpoint chips select the *presets*, ``APP#PRESET``; several presets
-are ensembled — their displacement fields are averaged by the CLI), evaluation runs
-``impact-reg-konfai eval`` (the CLI warps the moving data with the transform), and
-uncertainty runs ``impact-reg-konfai uncertainty`` on the ensemble's stack the registration kept.
+``impact-reg-konfai register`` with the presets of the base panel's chips (several are
+ensembled: their displacement fields averaged, their stack kept with Uncertainty), and
+evaluation runs ``impact-reg-konfai eval`` (the CLI warps the moving data with the
+transform). Uncertainty is the base panel's: konfai-apps, with the engine apps' tabs.
 """
-
-import shutil
-from pathlib import Path
 
 import SimpleITK as sitk  # noqa: N813
 import sitkUtils
@@ -39,26 +36,23 @@ from KonfAI import (
     _is_reload_setup,
     install_package,
 )
-from qt import QComboBox, QHBoxLayout, QLabel, QSpinBox, QWidget
+from qt import QComboBox, QFormLayout, QHBoxLayout, QLabel, QSpinBox, QWidget
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import ScriptedLoadableModule, ScriptedLoadableModuleWidget
 
 IMPACT_REG_REPO = "VBoussot/ImpactReg"
 
-# The flag of `impact-reg-konfai eval` each evaluation input of the presets' app.json goes to (a Mask* entry: --mask).
-EVALUATION_FLAGS = {
-    "Transform": "--transform",
-    "FixedImage": "-f",
-    "MovingImage": "-m",
-    "FixedSeg": "--gt-fixed-seg",
-    "MovingSeg": "--gt-moving-seg",
-    "FixedFid": "--gt-fixed-fid",
-    "MovingFid": "--gt-moving-fid",
-}
-
 # How `impact-reg-konfai register --out-of-core` registers a pair; auto is its default.
 ROUTES = ("auto", "whole", "tiled", "sampled")
+
+# The flags of `impact-reg-konfai eval` per evaluation config: in the declared order, Transform maps to --transform,
+# then fixed, moving, and Mask_* to --mask. A config without a tab here runs through konfai-apps eval.
+EVALUATION_FLAGS = {
+    "Evaluation_with_images.yml": ("-f", "-m"),
+    "Evaluation_with_seg.yml": ("--gt-fixed-seg", "--gt-moving-seg"),
+    "Evaluation_with_fid.yml": ("--gt-fixed-fid", "--gt-moving-fid"),
+}
 
 
 #
@@ -121,25 +115,16 @@ class ImpactReg(ScriptedLoadableModule):
 class RegistrationInferencePanel(KonfAIAppInferencePanel):
     """Inference panel variant that drives ``impact-reg-konfai register``.
 
-    The checkpoint chip selector is repurposed to select registration *presets*
-    (``APP#PRESET``, the presets of the repository's apps): selecting several presets runs them all and the
-    CLI averages their displacement fields into a single transform.
+    The presets are the base panel's (its Presets chips, ``APP#PRESET`` of any engine): several are ensembled, their
+    displacement fields averaged into one transform, and with Uncertainty their stack kept for the QA tab.
     """
 
     def __init__(self, template) -> None:
         super().__init__(template)
-        # This panel ensembles *presets* (the repository apps), not model checkpoints. Presets may run
-        # different engines (Elastix, ConvexAdam, FireANTs). The app selector at the top picks the main preset (it
-        # seeds the ensemble and drives evaluation); the "Ensemble with" combo adds further presets to
-        # average in. Hide the inference-only controls that do not apply: the ensemble count and MC-dropout.
-        self.ui.label_selected_checkpoints.setText(_("Presets"))
-        self.ui.label_ensemble.setText(_("Ensemble with"))
         self.ui.uncertaintyCheckBox.toolTip = _(
-            "Keep every preset's displacement field as the ensemble's stack so registration uncertainty (the "
-            "ensemble spread) can be estimated in the QA tab: two or more presets, or TTA on a preset that allows it."
+            "Keep the ensemble's stack, every preset's displacement field, so the QA tab can measure how they "
+            "disagree."
         )
-        for widget in (self.ui.ensembleSpinBox, self.ui.label_mcdo, self.ui.mcDropoutSpinBox):
-            widget.setVisible(False)
         self._add_large_image_row()
 
     def _add_large_image_row(self) -> None:
@@ -181,7 +166,14 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
             layout.addWidget(widget)
         self._route.connect("currentTextChanged(QString)", self._on_route_changed)
         form = self.ui.label_stochastic.parentWidget().layout()
-        form.insertRow(5, QLabel(_("Large images")), row)  # under the sampling row (KonfAIAppInference.ui)
+        sampling = next(
+            index
+            for index in range(form.rowCount())
+            if (item := form.itemAt(index, QFormLayout.LabelRole)) is not None
+            and item.widget() is not None
+            and item.widget().objectName == "label_stochastic"
+        )
+        form.insertRow(sampling + 1, QLabel(_("Large images")), row)
 
     def _on_route_changed(self, route: str) -> None:
         """The sampled mode's options apply where a pair may register sampled."""
@@ -198,26 +190,6 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
             args += ["--epochs", str(self._visits.value)] if self._visits.value else []
         return args
 
-    def on_app_changed(self, app) -> None:
-        super().on_app_changed(app)
-        # The preset selector reuses the ensemble widgets, which the base panel hides for a
-        # checkpoint-less app — re-show them (the count spin stays hidden: presets are picked, not counted).
-        for widget in (
-            self.ui.label_ensemble,
-            self.ui.checkpointsComboBox,
-            self.ui.label_selected_checkpoints,
-            self.ui.selectedCheckpointsWidget,
-        ):
-            widget.setVisible(True)
-        self.ui.label_stochastic.setVisible(True)
-        # The app selector picks the main preset: it seeds the ensemble (the "Presets" chips) and drives
-        # evaluation. Add more presets with the "Ensemble with" combo below; switching the main reseeds
-        # the ensemble to it. The CLI averages the displacement fields of all the selected presets.
-        presets = self.template.get_preset_names()
-        engine = app.get_name().split(":")[-1]
-        current = [preset for preset in presets if preset.split("#")[0] == engine][:1]
-        self.chip_selector.update(presets, presets, current or presets[:1])
-
     def _extra_node(self, key: str):
         """Return the node of the extra input selector declared under ``key`` in app.json (or None)."""
         entry = self._extra_input_selectors.get(key)
@@ -233,7 +205,7 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
 
         fixed_node = self.ui.inputVolumeSelector.currentNode()
         moving_node = self._extra_node("Moving")
-        presets = self.chip_selector.selected()
+        presets = [reference.split(":")[-1] for reference in self.references()]  # register names them in its repo
         if fixed_node is None or moving_node is None or not presets:
             self._update_logs("[ImpactReg] Select a fixed image, a moving image and at least one preset.", False)
             self.template.set_running(False)
@@ -259,8 +231,8 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
             args += ["--tta", str(self.ui.ttaSpinBox.value)]
         # Tuned preset parameters from the Advanced dialog, forwarded to each preset (--set path=value).
         args += self._param_override_set_args()
-        # The Uncertainty checkbox gates whether the ensemble's (large) stack of fields is kept, so the QA panel can
-        # measure the ensemble spread; without it only the averaged transform is produced.
+        # The Uncertainty checkbox keeps the ensemble's stack (every preset's displacement field) beside the averaged
+        # transform, so the QA panel can measure how the presets disagree.
         if self.ui.uncertaintyCheckBox.isChecked():
             args += ["--uncertainty"]
         args += self._large_image_args()
@@ -297,8 +269,12 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
                 background=fixed_node, foreground=moved_node, foregroundOpacity=0.5, fit=True
             )
 
-            # The ensemble's stack, kept under Uncertainty, for the QA panel's uncertainty.
-            self.template.keep_stack(next(case_dir.glob("InferenceStack*"), None))
+            # The ensemble's stack, with --uncertainty: one sequence item per preset, its displacement field.
+            stack = next((path for path in sorted(case_dir.glob("InferenceStack.*")) if path.is_file()), None)
+            if stack is not None:
+                self.load_stack(stack, presets)
+            else:
+                self.clear_stack()  # none of the previous registration's fields left to measure
 
             self._update_logs("Registration results loaded into Slicer.")
 
@@ -306,27 +282,18 @@ class RegistrationInferencePanel(KonfAIAppInferencePanel):
 
 
 class RegistrationQAPanel(KonfAIAppQAPanel):
-    """QA panel variant that drives ``impact-reg-konfai eval`` and ``impact-reg-konfai uncertainty``.
+    """QA panel variant that drives ``impact-reg-konfai eval``; the uncertainty tabs (the engine apps' own
+    Uncertainty*.yml) run as any app's, through konfai-apps.
 
     Unlike the generic panel, the raw (unwarped) nodes are exported: the CLI applies
     the transform to the moving data itself (images/segmentations/landmarks).
     """
 
-    def __init__(self, template) -> None:
-        super().__init__(template)
-        # Uncertainty reads the stack the registration kept (``keep_stack``), not a sequence picked here.
-        for widget in (self.ui.label_stackVolume, self.ui.inputVolumeSequenceSelector):
-            widget.setVisible(False)
-
     def _export_node(self, node, base: str) -> str | None:
-        """Export a node for the CLI: markups as .fcsv, segmentations as labelmap .mha, transforms as .h5, volumes
-        as .mha."""
+        """Export a node for the CLI: markups as .fcsv, segmentations as labelmap .mha, volumes as .mha."""
         if node is None:
             return None
-        if node.IsA("vtkMRMLTransformNode"):
-            file_name = f"{base}.h5"
-            slicer.util.saveNode(node, str(self._work_dir / file_name))
-        elif node.IsA("vtkMRMLMarkupsNode"):
+        if node.IsA("vtkMRMLMarkupsNode"):
             file_name = f"{base}.fcsv"
             slicer.util.saveNode(node, str(self._work_dir / file_name))
         elif node.IsA("vtkMRMLSegmentationNode"):
@@ -351,36 +318,46 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
 
         args = ["eval", "-o", "Evaluation"]
 
-        # The registration's transform stands in for a tab's own (identity when neither is selected).
+        # The transform produced by the registration (identity when none is selected).
         transform_node = self.ui.inputTransformSelector.currentNode()
-        evaluation_key = self._current_evaluation_key()
+        if transform_node is not None:
+            slicer.util.saveNode(transform_node, str(self._work_dir / "Transform.h5"))
+            args += ["--transform", "Transform.h5"]
+
+        evaluation_key = self._current_key(self._evaluation_tabs, self._evaluation_input_selectors)
         if evaluation_key is None:
             # Static fallback: reference = fixed, input = moving (image modality).
-            nodes = {
-                "Transform": transform_node,
-                "FixedImage": self.ui.referenceVolumeSelector.currentNode(),
-                "MovingImage": self.ui.inputVolumeEvaluationSelector.currentNode(),
-                "Mask": self.ui.referenceMaskSelector.currentNode(),
-            }
+            fixed_flag, moving_flag = EVALUATION_FLAGS["Evaluation_with_images.yml"]
+            fixed_file = self._export_node(self.ui.referenceVolumeSelector.currentNode(), "FixedImage")
+            moving_file = self._export_node(self.ui.inputVolumeEvaluationSelector.currentNode(), "MovingImage")
+            args += [fixed_flag, fixed_file, moving_flag, moving_file]
+            mask_file = self._export_node(self.ui.referenceMaskSelector.currentNode(), "Mask")
+            if mask_file:
+                args += ["--mask", mask_file]
         else:
-            nodes = {
-                key: selector.currentNode()
-                for key, (_, selector) in self._evaluation_input_selectors[evaluation_key].items()
-            }
-            nodes["Transform"] = nodes.get("Transform") or transform_node
-        for key, node in nodes.items():
-            flag = "--mask" if key.startswith("Mask") else EVALUATION_FLAGS.get(key)
-            if flag is None:
-                self._update_logs(
-                    f"[ImpactReg] impact-reg-konfai eval takes no '{key}': run the "
-                    f"'{evaluation_key.display_name}' evaluation with konfai-apps eval.",
-                    False,
-                )
-                self.template.set_running(False)
+            flags = EVALUATION_FLAGS.get(evaluation_key.evaluation_file)
+            if flags is None:
+                super().evaluation(None, devices)
                 return
-            file_name = self._export_node(node, key)
-            if file_name is not None:
-                args += [flag, file_name]
+            # Manifest order: the Transform entry (it replaces the panel's transform), the fixed side, the moving
+            # side, Mask_* the evaluation mask.
+            sides = iter(flags)
+            for key, (_required, selector) in self._evaluation_input_selectors[evaluation_key].items():
+                node = selector.currentNode()
+                if node is not None and node.IsA("vtkMRMLTransformNode"):
+                    slicer.util.saveNode(node, str(self._work_dir / "Transform.h5"))
+                    if "--transform" not in args:
+                        args += ["--transform", "Transform.h5"]
+                    continue
+                file_name = self._export_node(node, key)
+                if file_name is None:
+                    continue
+                if key.startswith("Mask"):
+                    args += ["--mask", file_name]
+                else:
+                    flag = next(sides, None)
+                    if flag is not None:
+                        args += [flag, file_name]
 
         if devices:
             args += ["--gpu"] + devices
@@ -408,80 +385,12 @@ class RegistrationQAPanel(KonfAIAppQAPanel):
 
         self.process.run("impact-reg-konfai", self._work_dir, args, on_end_function)
 
-    def uncertainty(self, remote_server: RemoteServer | None, devices: list[str]) -> None:
-        """Estimate registration uncertainty from the ensemble's stack the registration kept."""
-        if remote_server is not None:
-            # The spread is measured on the stack this machine holds: it runs here, on its CPU.
-            self._update_logs("[ImpactReg] Uncertainty runs on this machine, not on the server.")
-            devices = []
-
-        self.uncertainty_panel.clear_metrics()
-
-        stack = self.template.ensemble_stack
-        if stack is None or not stack.exists():
-            self._update_logs(
-                "[ImpactReg] Uncertainty needs the ensemble's stack: register with Uncertainty checked and two or "
-                "more presets, or TTA on a preset that allows it.",
-                False,
-            )
-            self.template.set_running(False)
-            return
-
-        args = ["uncertainty", "-i", str(stack), "-o", "Uncertainty"]
-        if devices:
-            args += ["--gpu"] + devices
-        else:
-            args += ["--cpu", "1"]
-
-        def on_end_function() -> None:
-            uncertainty_dir = self._work_dir / "Uncertainty"
-            map_file = next(uncertainty_dir.rglob("*.mha"), None)
-            if map_file is None:
-                self._update_logs(
-                    "[ImpactReg] Uncertainty finished but produced no map "
-                    f"(no .mha under {uncertainty_dir}). "
-                    "The process probably failed: check the log above for errors.",
-                    False,
-                )
-                return
-
-            # The map is the spread of the displacement vectors, in mm; its mean and 95th percentile are its metrics.
-            from konfai.evaluator import Statistics
-
-            metrics = next(uncertainty_dir.rglob("Metric_*.json"), None)
-            if metrics is not None:
-                self.uncertainty_panel.set_metrics(Statistics(metrics).read())
-            self.uncertainty_panel.refresh_images_list(map_file.parent)
-
-        self.process.run("impact-reg-konfai", self._work_dir, args, on_end_function)
-
 
 class ImpactRegAppTemplateWidget(KonfAIAppTemplateWidget):
     """Generic KonfAI app widget with the registration-specific inference and QA panels."""
 
     INFERENCE_PANEL_CLASS = RegistrationInferencePanel
     QA_PANEL_CLASS = RegistrationQAPanel
-    #: The stack of the last registration kept under Uncertainty, which the QA panel's uncertainty measures.
-    ensemble_stack: Path | None = None
-
-    def keep_stack(self, stack: Path | None) -> None:
-        """Keep the last registration's ``stack`` apart from the work dir, which the next run replaces."""
-        if self.ensemble_stack is not None:
-            shutil.rmtree(self.ensemble_stack.parent, ignore_errors=True)
-        self.ensemble_stack = None
-        if stack is not None:
-            self.ensemble_stack = Path(slicer.util.tempDirectory()) / stack.name
-            shutil.move(str(stack), str(self.ensemble_stack))
-
-    def get_preset_names(self) -> list[str]:
-        """The presets of the apps listed in the selection combo, as ``APP#PRESET`` (an app with none by its name)."""
-        combo = self.ui.appComboBox
-        names = []
-        for app in (combo.itemData(i) for i in range(combo.count)):
-            if app is not None:
-                engine = app.get_name().split(":")[-1]
-                names += [f"{engine}#{preset}" for preset in app.get_presets()] or [engine]
-        return names
 
 
 class ImpactRegWidget(ScriptedLoadableModuleWidget):
